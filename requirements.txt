@@ -1,0 +1,7 @@
+duckdb
+streamlit 
+pandas
+streamlit-aggrid
+bitstring
+pandas-profiling
+ydata-profiling

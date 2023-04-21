@@ -1,0 +1,11 @@
+*.log
+*.sql
+*.sqlite
+*.csv
+*.jegp
+*.jpg
+*.webpp
+
+DB/
+_pycache_/
+img/
