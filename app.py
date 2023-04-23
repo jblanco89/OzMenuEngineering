@@ -10,7 +10,7 @@ import queries
 
 
 # Create a new database
-con = ConnectionDB('DB/engineMenu.db')
+con = ConnectionDB('DB/engineMenu_v43.db')
 cursor = con.cursor()
 
 

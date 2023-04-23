@@ -9,7 +9,7 @@ import streamlit as st
 import time
 
 
-con = ConnectionDB('DB/engineMenu.db')
+con = ConnectionDB('DB/engineMenu_v43.db')
 cursor = con.cursor()
 
 class IngredientClass:

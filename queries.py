@@ -152,7 +152,7 @@ insert_inventory_data = '''
     (PESOBruto - MERMA) AS PESONeto, 
     FACTORMerma,
     EXISTENCIAS 
-    FROM read_csv('C:/Users/javie/Documents/Jami/Jami-Project/Escandallo/MenuEngine/external_csv/inventario_dev.csv', 
+    FROM read_csv('external_csv/inventario_dev.csv', 
     delim=';', header=True, ignore_errors=1,
     columns={
         'ID': 'INTEGER', 

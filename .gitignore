@@ -1,11 +1,12 @@
 *.log
 *.sql
 *.sqlite
-*.csv
-*.jegp
-*.jpg
 *.webpp
+*.db.wal
+*.pyc
 
-DB/
-_pycache_/
-img/
+export.py
+import.py
+test_db.py
+
+DB/DB_Export/
