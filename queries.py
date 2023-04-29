@@ -1,4 +1,5 @@
 from io import BytesIO
+import base64
 create_inventory_table = '''
         CREATE TABLE IF NOT EXISTS inventario (
             id INTEGER PRIMARY KEY,
@@ -8,12 +9,12 @@ create_inventory_table = '''
             precio_neto FLOAT,
             precio_compra FLOAT,
             unidad_compra VARCHAR(50),
-            formato FLOAT,
-            peso_bruto FLOAT,
-            merma FLOAT,
+            formato FLOAT NOT NULL DEFAULT 0.0,
+            peso_bruto FLOAT NOT NULL DEFAULT 0.0,
+            merma FLOAT NOT NULL DEFAULT 0.0,
             peso_neto FLOAT, 
-            factor_merma FLOAT,
-            existencias FLOAT
+            factor_merma FLOAT DEFAULT 0.0,
+            existencias FLOAT DEFAULT 0.0
         );
         '''
 create_ingredients_table = '''
@@ -84,7 +85,7 @@ create_meal_ingredient_table = '''
 with open('img/Imagen1.jpg', 'rb') as f:
     image_data = f.read()
 
-img_insert = BytesIO(image_data)
+img_insert = base64.b64encode(image_data).decode('utf-8')
 
 insert_meals_data = f'''
     INSERT OR IGNORE INTO platos 
@@ -167,7 +168,7 @@ insert_inventory_data = '''
         'MERMA': 'FLOAT',
         'FACTORMerma': 'FLOAT',
         'PESONeto': 'FLOAT',
-        'EXISTENCIAS': 'FLOAT'
+        'EXISTENCIAS': 'FLOAT DEFAULT 0.0'
         }
         )
         WHERE NOT EXISTS (SELECT * FROM inventario);

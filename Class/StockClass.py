@@ -31,11 +31,12 @@ class StreamlitStockProcess:
                                     .upper()
                                     .replace('_', ' ')
                                     )
+        stock_data['EXISTENCIAS'] = stock_data['EXISTENCIAS'].fillna(0.0)
         
         return stock_data
-    def create_grid_stock_table(self):
+    def create_grid_stock_table(self, stock_data_frame):
         st.subheader('Tabla de Inventario')
-        stock_data_frame = self.stock_data()
+        # stock_data_frame = self.stock_data()
         gob = GridOptionsBuilder.from_dataframe(stock_data_frame)
 
         # set the update mode to 'ValueChange' to update the table on input chang
@@ -53,11 +54,6 @@ class StreamlitStockProcess:
                                     wrapHeaderText=True, 
                                     autoHeaderHeight=True
                                    )
-        
-        # gob.configure_pagination(enabled=True, 
-        #                          paginationAutoPageSize=True, 
-        #                          paginationPageSize=10)
-        
         
         # create the agGrid table
         ag_grid = AgGrid(data = stock_data_frame,
@@ -97,7 +93,7 @@ class StreamlitStockProcess:
                 updated_price = st.number_input('PRECIO DE COMPRA', value= float(stock_price), format='%f')
                 updated_weight = st.number_input('PESO BRUTO', value= float(stock_weight), format='%f')
                 updated_merma = st.number_input('MERMA', value= stock_merma)
-                updated_amount = st.number_input('EXISTENCIAS', value=stock_amount, format='%d')
+                updated_amount = st.number_input('EXISTENCIAS', value=float(stock_amount), format='%f')
                 update_button = st.form_submit_button(label='Update producto')
 
             if update_button:
@@ -119,4 +115,16 @@ class StreamlitStockProcess:
                 st.success('producto Actualizado!')
                 time.sleep(2)
                 st.experimental_rerun()
-    
+
+    def search_stock_engine(self):
+        search_term = st.text_input('Buscar Artículo')
+        df_table = self.stock_data()
+        m1 = df_table["NOMBRE"].str.lower().str.contains(search_term.lower())
+        m2 = df_table["FAMILIA"].str.lower().str.contains(search_term.lower())
+        m3 = df_table['PROVEEDOR'].str.lower().str.contains(search_term.lower())
+        df_search = df_table[m1 | m2 | m3]
+        if search_term:
+            # st.write(df_search)
+            self.create_grid_stock_table(stock_data_frame=df_search)
+        else:
+            self.create_grid_stock_table(stock_data_frame=df_table)
