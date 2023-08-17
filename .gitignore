@@ -3,11 +3,14 @@
 *.sqlite
 *.webpp
 *.db.wal
-*.pyc
+
 
 export.py
 import.py
 test_db.py
 
-DB/DB_Export/
-img/logosoz/
+
+__pycache__/*
+Class/__pycache__/*
+/DB/DB_Export/*
+/img/logosoz/*

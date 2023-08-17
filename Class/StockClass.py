@@ -31,7 +31,12 @@ class StreamlitStockProcess:
                                     .upper()
                                     .replace('_', ' ')
                                     )
-        stock_data['EXISTENCIAS'] = stock_data['EXISTENCIAS'].fillna(0.0)
+        stock_data[['EXISTENCIAS', 
+                    'PESO BRUTO']] = stock_data[['EXISTENCIAS', 
+                                                'PESO BRUTO']].fillna(0.0)
+        stock_data['PRECIO COMPRA'] = stock_data['PRECIO COMPRA'].fillna(1.0)
+        
+
         
         return stock_data
     def create_grid_stock_table(self, stock_data_frame):

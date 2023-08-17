@@ -17,7 +17,7 @@ cursor = con.cursor()
 #Instantiating Classes
 inventori = StreamlitStockProcess(con)
 meals = StreamlitMealsProcess(con)
-ingredients = IngredientClass(con)
+# ingredients = IngredientClass(con)
 home_page = HomeClass()
 
 css_styles = '''
@@ -48,12 +48,16 @@ st.markdown(css_styles,
 
 # DATE data type in duckDB --> ISO 8601 format (YYYY-MM-DD).
 cursor.execute(query=queries.create_inventory_table)
-cursor.execute(query=queries.create_ingredients_table)
 cursor.execute(query=queries.create_meals_table)
 cursor.execute(query=queries.create_meal_ingredient_table)
+cursor.execute(query=queries.create_menu_engine_table)
+cursor.execute(query=queries.create_sales_table)
+cursor.execute(query=queries.insert_sales_data)
+cursor.execute(query=queries.insert_menu_engine_value)
 cursor.execute(query=queries.insert_meals_data)
-cursor.execute(query=queries.insert_ingredients_data)
 cursor.execute(query=queries.insert_inventory_data)
+cursor.execute(query=queries.insert_ingredient_meal_data)
+
 
 
 

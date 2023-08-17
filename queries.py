@@ -1,11 +1,10 @@
-from io import BytesIO
 import base64
 create_inventory_table = '''
         CREATE TABLE IF NOT EXISTS inventario (
             id INTEGER PRIMARY KEY,
-            nombre VARCHAR(255),
             familia VARCHAR(255),
             proveedor VARCHAR(255),
+            nombre VARCHAR(255),
             precio_neto FLOAT,
             precio_compra FLOAT,
             unidad_compra VARCHAR(50),
@@ -17,21 +16,6 @@ create_inventory_table = '''
             existencias FLOAT DEFAULT 0.0
         );
         '''
-create_ingredients_table = '''
-        CREATE TABLE IF NOT EXISTS ingredientes (
-            id INTEGER PRIMARY KEY,
-            id_inventario INTEGER,
-            nombre VARCHAR(255) DEFAULT '',
-            cantidad REAL NOT NULL DEFAULT 0.0,
-            unidad_real VARCHAR(255),
-            precio_compra DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            unidad_compra VARCHAR(255) DEFAULT '',
-            factor_merma REAL NOT NULL DEFAULT 0.00,
-            coste_ingrediente DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            FOREIGN KEY (id_inventario) REFERENCES inventario (id)
-        );
-        '''
-
 
 create_meals_table = '''
     CREATE TABLE IF NOT EXISTS platos (
@@ -75,13 +59,40 @@ create_meals_table = '''
 # FOREIGN KEY (id_ingrediente) REFERENCES ingredientes (id)
 create_meal_ingredient_table = '''
     CREATE TABLE IF NOT EXISTS plato_ingredientes (
-    id_ingrediente INTEGER,
-    id_plato INTEGER,
-    FOREIGN KEY (id_plato) REFERENCES platos (id),
-    FOREIGN KEY (id_ingrediente) REFERENCES ingredientes (id)
+        id_plato INTEGER,
+        id_inventario INTEGER,
+        PRIMARY KEY (id_plato, id_inventario),
+        FOREIGN KEY (id_plato) REFERENCES platos (id),
+        FOREIGN KEY (id_inventario) REFERENCES inventario (id)
+        );
+
+'''
+
+create_menu_engine_table = '''
+    CREATE TABLE IF NOT EXISTS ingenieria_menu (
+        id_plato INTEGER,
+        indice_popularidad REAL NOT NULL DEFAULT 0.0,
+        coste_producto_porcentage REAL DEFAULT 0.0,
+        margen_contribucion REAL NOT NULL DEFAULT 0.0,
+        total_coste_producto REAL NOT NULL DEFAULT 0.0,
+        total_venta_producto REAL NOT NULL DEFAULT 0.0,
+        total_margen REAL NOT NULL DEFAULT 0.0,
+        rentabilidad VARCHAR(16) DEFAULT NULL,
+        popularidad VARCHAR(16) DEFAULT NULL,
+        clasificacion VARCHAR(16) DEFAULT NULL
+        );
+'''
+
+create_sales_table = '''
+    CREATE TABLE IF NOT EXISTS ventas_productos (
+        Fecha VARCHAR(10),
+        id_plato INTEGER,
+        nombre_plato VARCHAR(50),
+        unidades_vendidas REAL NOT NULL DEFAULT 0.0
     );
 
 '''
+
 with open('img/Imagen1.jpg', 'rb') as f:
     image_data = f.read()
 
@@ -114,36 +125,22 @@ insert_meals_data = f'''
         );
 '''
 
-insert_ingredients_data = '''
-    INSERT OR IGNORE INTO ingredientes 
-    (id, 
-    nombre, 
-    unidad_real, 
-    precio_compra, 
-    unidad_compra,
-    factor_merma
-    )
-    VALUES (1,'pasta', 'gramos', 2.5, 'Kg', 1000.00),
-       (2, 'ground beef', 'gramos', 1.2, 'Kg', 1000.00),
-       (3, 'tomato sauce', 'gramos', 2.5, 'Kg', 1000.00),
-       (4, 'onions', 'gramos', 0.45, 'Kg', 1000.00);
-'''
 
 insert_ingredient_meal_data = '''
     INSERT OR IGNORE INTO plato_ingredientes 
     (id_plato, 
-    id_ingrediente,
+    id_inventario
     )
-    VALUES (1, 1), (1, 2), (1, 3), (1, 4);
+    VALUES (1, 100004), (1, 100007), (1, 100048), (1, 100077);
 '''
 
 insert_inventory_data = '''
     INSERT INTO inventario 
     SELECT 
     ID, 
-    PRODUCTO, 
     FAMILIA, 
-    PROVEEDOR,
+    PROVEEDOR, 
+    PRODUCTO,
     UDNeto, 
     UDCompra, 
     UD, 
@@ -157,19 +154,61 @@ insert_inventory_data = '''
     delim=';', header=True, ignore_errors=1,
     columns={
         'ID': 'INTEGER', 
-        'PRODUCTO': 'VARCHAR', 
         'FAMILIA': 'VARCHAR', 
-        'PROVEEDOR': 'VARCHAR',
-        'UDNeto': 'FLOAT',
-        'UDCompra': 'FLOAT',
+        'PROVEEDOR': 'VARCHAR', 
+        'PRODUCTO': 'VARCHAR',
+        'UDNeto': 'FLOAT DEFAULT 0.0',
+        'UDCompra': 'FLOAT DEFAULT 1.0',
         'UD': 'VARCHAR',
         'FORMATO': 'FLOAT',
-        'PESOBruto': 'FLOAT',
-        'MERMA': 'FLOAT',
-        'FACTORMerma': 'FLOAT',
-        'PESONeto': 'FLOAT',
+        'PESOBruto': 'FLOAT DEFAULT 0.0',
+        'MERMA': 'FLOAT DEFAULT 0.0',
+        'FACTORMerma': 'FLOAT DEFAULT 0.0',
+        'PESONeto': 'FLOAT DEFAULT 0.0',
         'EXISTENCIAS': 'FLOAT DEFAULT 0.0'
         }
         )
         WHERE NOT EXISTS (SELECT * FROM inventario);
-        ''' 
+        '''
+
+
+insert_sales_data = '''
+    INSERT INTO ventas_productos (
+    Fecha,
+    id_plato,
+    nombre_plato,
+    unidades_vendidas)
+    VALUES (
+    '2022/03/01',
+    0.0,
+    'CEVICHE',
+    0.0
+    );
+
+'''
+
+insert_menu_engine_value = '''
+    INSERT INTO ingenieria_menu
+    (id_plato,
+    indice_popularidad,
+    coste_producto_porcentage,
+    margen_contribucion,
+    total_coste_producto,
+    total_venta_producto,
+    total_margen,
+    rentabilidad,
+    popularidad,
+    clasificacion)
+    VALUES
+    (1,
+    0.5,
+    0.5,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    'ALTO',
+    'ALTO',
+    'ESTRELLA');
+
+'''
