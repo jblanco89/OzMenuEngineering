@@ -1,6 +1,4 @@
-import base64
-create_inventory_table = '''
-        CREATE TABLE IF NOT EXISTS inventario (
+CREATE TABLE IF NOT EXISTS inventario (
             id INTEGER PRIMARY KEY,
             familia VARCHAR(255),
             proveedor VARCHAR(255),
@@ -15,10 +13,8 @@ create_inventory_table = '''
             factor_merma FLOAT DEFAULT 0.0,
             existencias FLOAT DEFAULT 0.0
         );
-        '''
 
-create_meals_table = '''
-    CREATE TABLE IF NOT EXISTS platos (
+CREATE TABLE IF NOT EXISTS platos (
         id INTEGER PRIMARY KEY,
         zona VARCHAR(255) DEFAULT '',
         categoria VARCHAR(255),
@@ -55,21 +51,16 @@ create_meals_table = '''
         foto_plato BLOB DEFAULT NULL,
         plato_activo BITSTRING
         );
-    '''
-# FOREIGN KEY (id_ingrediente) REFERENCES ingredientes (id)
-create_meal_ingredient_table = '''
-    CREATE TABLE IF NOT EXISTS plato_ingredientes (
+        
+CREATE TABLE IF NOT EXISTS plato_ingredientes (
         id_plato INTEGER,
         id_inventario INTEGER,
         PRIMARY KEY (id_plato, id_inventario),
         FOREIGN KEY (id_plato) REFERENCES platos (id),
         FOREIGN KEY (id_inventario) REFERENCES inventario (id)
         );
-
-'''
-
-create_menu_engine_table = '''
-    CREATE TABLE IF NOT EXISTS ingenieria_menu (
+        
+CREATE TABLE IF NOT EXISTS ingenieria_menu (
         id_plato INTEGER,
         indice_popularidad REAL NOT NULL DEFAULT 0.0,
         coste_producto_porcentage REAL DEFAULT 0.0,
@@ -83,10 +74,8 @@ create_menu_engine_table = '''
         PRIMARY KEY (id_plato),
         FOREIGN KEY (id_plato) REFERENCES platos (id)
         );
-'''
-
-create_sales_table = '''
-    CREATE TABLE IF NOT EXISTS ventas_productos (
+        
+CREATE TABLE IF NOT EXISTS ventas_productos (
         Fecha VARCHAR(10),
         id_plato INTEGER,
         nombre_plato VARCHAR(50),
@@ -94,125 +83,3 @@ create_sales_table = '''
         PRIMARY KEY (id_plato),
         FOREIGN KEY (id_plato) REFERENCES platos (id)
     );
-
-'''
-
-with open('img/Imagen1.jpg', 'rb') as f:
-    image_data = f.read()
-
-img_insert = base64.b64encode(image_data).decode('utf-8')
-
-insert_meals_data = f'''
-    INSERT OR IGNORE INTO platos 
-    (id,
-    categoria,
-    nombre_plato,
-    Fecha,
-    porcion_grs,
-    numero_porciones,
-    precio_venta, 
-    costo_receta,
-    foto_plato,
-    plato_activo
-    )
-    VALUES (
-        1,
-        'Principal',
-        'Plato Inicial', 
-        '2022-08-22',
-        150.15,
-        1.0, 
-        15.99,
-        3.50,
-        '{img_insert}',
-        '1'
-        );
-'''
-
-
-insert_ingredient_meal_data = '''
-    INSERT OR IGNORE INTO plato_ingredientes 
-    (id_plato, 
-    id_inventario
-    )
-    VALUES (1, 100004), (1, 100007), (1, 100048), (1, 100077);
-'''
-
-insert_inventory_data = '''
-    INSERT OR IGNORE INTO inventario 
-    SELECT 
-    ID, 
-    FAMILIA, 
-    PROVEEDOR, 
-    PRODUCTO,
-    UDNeto, 
-    UDCompra, 
-    UD, 
-    FORMATO, 
-    PESOBruto, 
-    MERMA,
-    (PESOBruto - MERMA) AS PESONeto, 
-    FACTORMerma,
-    EXISTENCIAS 
-    FROM read_csv('external_csv/inventario_dev.csv', 
-    delim=';', header=True, ignore_errors=1,
-    columns={
-        'ID': 'INTEGER', 
-        'FAMILIA': 'VARCHAR', 
-        'PROVEEDOR': 'VARCHAR', 
-        'PRODUCTO': 'VARCHAR',
-        'UDNeto': 'FLOAT DEFAULT 0.0',
-        'UDCompra': 'FLOAT DEFAULT 1.0',
-        'UD': 'VARCHAR',
-        'FORMATO': 'FLOAT',
-        'PESOBruto': 'FLOAT DEFAULT 0.0',
-        'MERMA': 'FLOAT DEFAULT 0.0',
-        'FACTORMerma': 'FLOAT DEFAULT 0.0',
-        'PESONeto': 'FLOAT DEFAULT 0.0',
-        'EXISTENCIAS': 'FLOAT DEFAULT 0.0'
-        }
-        )
-        WHERE NOT EXISTS (SELECT * FROM inventario);
-        '''
-
-
-insert_sales_data = '''
-    INSERT OR IGNORE INTO ventas_productos (
-    Fecha,
-    id_plato,
-    nombre_plato,
-    unidades_vendidas)
-    VALUES (
-    '2022/03/01',
-    1,
-    'CEVICHE',
-    0.0
-    );
-
-'''
-
-insert_menu_engine_value = '''
-    INSERT OR IGNORE INTO ingenieria_menu
-    (id_plato,
-    indice_popularidad,
-    coste_producto_porcentage,
-    margen_contribucion,
-    total_coste_producto,
-    total_venta_producto,
-    total_margen,
-    rentabilidad,
-    popularidad,
-    clasificacion)
-    VALUES
-    (1,
-    0.5,
-    0.5,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    'ALTO',
-    'ALTO',
-    'ESTRELLA');
-
-'''

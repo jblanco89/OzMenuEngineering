@@ -52,11 +52,11 @@ cursor.execute(query=queries.create_meals_table)
 cursor.execute(query=queries.create_meal_ingredient_table)
 cursor.execute(query=queries.create_menu_engine_table)
 cursor.execute(query=queries.create_sales_table)
-cursor.execute(query=queries.insert_sales_data)
-cursor.execute(query=queries.insert_menu_engine_value)
 cursor.execute(query=queries.insert_meals_data)
 cursor.execute(query=queries.insert_inventory_data)
 cursor.execute(query=queries.insert_ingredient_meal_data)
+cursor.execute(query=queries.insert_sales_data)
+cursor.execute(query=queries.insert_menu_engine_value)
 
 
 

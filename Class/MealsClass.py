@@ -1,3 +1,8 @@
+import base64
+import pandas as pd 
+import streamlit as st
+import time
+import datetime
 from Class.ConnectionDB import ConnectionDB
 from Class.StockClass import StreamlitStockProcess
 from st_aggrid import GridOptionsBuilder 
@@ -7,11 +12,6 @@ from st_aggrid import ColumnsAutoSizeMode
 from st_aggrid import AgGridTheme
 from bitstring import BitArray
 from io import BytesIO
-import base64
-import pandas as pd 
-import streamlit as st
-import time
-import datetime
 
 
 con = ConnectionDB('DB/engineMenu_v43.db')
@@ -195,18 +195,20 @@ class StreamlitMealsProcess:
                     time.sleep(2)
                     st.experimental_rerun()
 
+    
+            
     def add_meals_form(self):
         meals_data_frame = self.meals_data()
-        with st.form(key='add_meals_form', clear_on_submit=True):
+        with st.form(key='add_meals_form', clear_on_submit=False):
         # with st.container():
             st.write('Nuevo Plato')
             add_id = st.number_input('ID', min_value=0 ,value=meals_data_frame['ID'].iloc[-1] + 1, format='%d')
-            add_name = st.text_input('NOMBRE')
-            add_category = st.text_input('CATEGORÍA')
+            add_name = st.text_input('NOMBRE', value="")
+            add_category = st.text_input('CATEGORÍA', value="")
             add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
-            add_portion = st.number_input('PORCION (grs)', format='%.2f')
-            add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f')
-            add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f')
+            add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)
+            add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f', value=0.0)
+            add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f', value=0.0)
             add_tax = st.number_input('IMPUESTO (%)', min_value=4.0, max_value=21.0, value = 10.0, step=1.0, format='%.2f')
             add_img = st.file_uploader('Imagen', type=['jpg', 'jepg'])
     
@@ -265,6 +267,8 @@ class StreamlitMealsProcess:
             add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
 
             if add_button:
+                add_category = add_category
+                add_name = add_name
                 add_tax = (add_tax / 100)
                 add_status_bin = BitArray(bin=add_status_val).bin
                 add_recipe_cost = float(add_recipe_cost)
@@ -317,8 +321,10 @@ class StreamlitMealsProcess:
 
                 # display a success message
                 st.success('Nuevo plato agregado')
-                time.sleep(2)
+                time.sleep(1)
                 st.experimental_rerun()
+                
+                
     
     def search_meal_engine(self):
         search_term = st.text_input('Buscar Plato')
