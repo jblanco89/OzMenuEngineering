@@ -4,6 +4,7 @@ from st_aggrid import AgGrid
 from st_aggrid import GridUpdateMode
 from st_aggrid import ColumnsAutoSizeMode
 from st_aggrid import AgGridTheme
+from pandas_profiling import ProfileReport
 import pandas as pd 
 import streamlit as st
 import time
@@ -32,16 +33,19 @@ class StreamlitStockProcess:
                                     .replace('_', ' ')
                                     )
         stock_data[['EXISTENCIAS', 
-                    'PESO BRUTO']] = stock_data[['EXISTENCIAS', 
-                                                'PESO BRUTO']].fillna(0.0)
-        stock_data['PRECIO COMPRA'] = stock_data['PRECIO COMPRA'].fillna(1.0)
-        
-
-        
+                    'PESO BRUTO', 'PRECIO COMPRA']] = stock_data[['EXISTENCIAS', 
+                                                'PESO BRUTO', 'PRECIO COMPRA']].fillna(1.0)
         return stock_data
     def create_grid_stock_table(self, stock_data_frame):
         st.subheader('Tabla de Inventario')
         # stock_data_frame = self.stock_data()
+        btn_1 = st.button('Ver Reporte de Inventario', type='secondary')
+        if btn_1:
+            with st.spinner(f'Generando reporte de inventario... por favor espere'):
+                df = pd.read_sql(f'SELECT * FROM inventario', cursor)
+                profile = ProfileReport(df, title='Profiling Report', explorative=True, dark_mode=True)
+                pr_html = profile.to_html()
+                st.components.v1.html(pr_html, width=800, height=800, scrolling=True)
         gob = GridOptionsBuilder.from_dataframe(stock_data_frame)
 
         # set the update mode to 'ValueChange' to update the table on input chang

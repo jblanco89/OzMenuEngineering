@@ -3,7 +3,7 @@ from Class.MealsClass import StreamlitMealsProcess
 from Class.IngredientClass import IngredientClass
 from Class.HomeClass import HomeClass
 from Class.ConnectionDB import ConnectionDB
-from pandas_profiling import ProfileReport
+from Class.SalesMealsClass import StreamlitSalesMealsClass
 import streamlit as st
 import pandas as pd
 import queries
@@ -19,6 +19,7 @@ inventori = StreamlitStockProcess(con)
 meals = StreamlitMealsProcess(con)
 # ingredients = IngredientClass(con)
 home_page = HomeClass()
+sales = StreamlitSalesMealsClass(con)
 
 css_styles = '''
 <style>
@@ -28,8 +29,6 @@ css_styles = '''
         sans-serif;
         font-size: 13px;
         }
-    button{
-    display: inline-block;
     }
 
 </style>
@@ -54,8 +53,9 @@ cursor.execute(query=queries.create_menu_engine_table)
 cursor.execute(query=queries.create_sales_table)
 cursor.execute(query=queries.insert_meals_data)
 cursor.execute(query=queries.insert_inventory_data)
+cursor.execute(query=queries.correct_inventario_data)
 cursor.execute(query=queries.insert_ingredient_meal_data)
-cursor.execute(query=queries.insert_sales_data)
+# cursor.execute(query=queries.insert_sales_data)
 cursor.execute(query=queries.insert_menu_engine_value)
 
 
@@ -63,8 +63,8 @@ cursor.execute(query=queries.insert_menu_engine_value)
 
 def main():    
     # Create a menu with submenus
-    menu = ['Home', 'Inventario', 'Platos', 'Escandallo', 'About']
-    submenu_products = ['Mostrar', 'Agregar', 'Eliminar']
+    menu = ['Home', 'Inventario', 'Platos', 'Analisis', 'Ventas', 'About']
+    # submenu_products = ['Mostrar', 'Agregar', 'Eliminar']
     
     st.sidebar.title('MENU DE NAVEGACIÓN',)
     st.sidebar.image('img/oz_logo.png', caption='Oz Gastro club', use_column_width='auto')
@@ -74,23 +74,9 @@ def main():
     if selection_menu == 'Home':
         home_page.show_home()
         
-    elif selection_menu == 'Inventario':    
-        selection_submenu = st.sidebar.selectbox('Selecciona una acción',
-                                           submenu_products)
-        submenu_choice = selection_submenu
-
-        if submenu_choice == 'Mostrar':
-            if st.button('Ver Reporte de Inventario'):
-                with st.spinner(f'Generando reporte de inventario... por favor espere'):
-                    df = pd.read_sql(f'SELECT * FROM inventario', cursor)
-                    profile = ProfileReport(df, title='Profiling Report', explorative=True, dark_mode=True)
-                    pr_html = profile.to_html()
-                    st.components.v1.html(pr_html, width=800, height=800, scrolling=True)
-            
-            inventori.search_stock_engine()
-
-        elif submenu_choice == 'Agregar':
-            # Example form for adding a new product
+    elif selection_menu == 'Inventario':
+        if st.button('Agregar Ingrediente', type='primary', key='main_btn2'):
+            # elif submenu_choice == 'Agregar':
             st.subheader('Add a new product')
             product_name = st.text_input('Product Name')
             product_description = st.text_area('Product Description')
@@ -98,40 +84,24 @@ def main():
             if st.button('Submit'):
             # Add product to database or save data to file
                 st.success('Product added successfully!')
+        else:
+            inventori.search_stock_engine()
 
     elif selection_menu == 'Platos':
-        selection_submenu = st.sidebar.selectbox('Selecciona una acción',
-                                        submenu_products)
-        submenu_choice = selection_submenu
-        if submenu_choice == 'Mostrar':
-            if st.button('Ver Reporte de platos'):
-                with st.spinner(f'Generando reporte de platos... por favor espere'):
-                    df = pd.read_sql(f'SELECT * FROM platos', cursor)
-                    profile = ProfileReport(df, title='Profiling Report', explorative=True, dark_mode=True)
-                    pr_html = profile.to_html()
-                    st.components.v1.html(pr_html, width=800, height=800, scrolling=True)
-            meals.search_meal_engine()
-            # meals.create_grid_meals_table()
-        elif submenu_choice == 'Agregar':
+        if st.button('Agregar Plato', type='primary'):
             meals.add_meals_form()
-
-    elif selection_menu == 'Escandallo':
-        selection_submenu = st.sidebar.selectbox('Selecciona una acción',
-                                        submenu_products)
-        submenu_choice = selection_submenu
-        if submenu_choice == 'Mostrar':
-            #ingredients.create_grid_ingredients_table()
-            st.write('En construcción')
-        elif submenu_choice == 'Agregar':
-            #ingredients.add_ingredient_form()
-            st.write('En construcción')       
-
-    # elif st.sidebar.selectbox('Menu', menu) == 'About':
-    #      st.subheader('More About')
-    #      st.write(
-    #         'This is a demonstration of a modern Streamlit page with tables, forms, and a menu. '
-    #         'It was created by Javier Blanco.')
+        else:
+            meals.search_meal_engine()
         
+
+    elif selection_menu == 'Analisis':
+            st.write('En construcción')
+
+
+    elif selection_menu == 'Ventas':
+         st.write("construcción")
+         sales.display_data()      
+
 
 if __name__ == "__main__":
     main()

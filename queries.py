@@ -5,15 +5,15 @@ create_inventory_table = '''
             familia VARCHAR(255),
             proveedor VARCHAR(255),
             nombre VARCHAR(255),
-            precio_neto FLOAT,
-            precio_compra FLOAT,
+            precio_neto FLOAT NOT NULL DEFAULT 1.0,
+            precio_compra FLOAT NOT NULL DEFAULT 1.0,
             unidad_compra VARCHAR(50),
-            formato FLOAT NOT NULL DEFAULT 0.0,
-            peso_bruto FLOAT NOT NULL DEFAULT 0.0,
-            merma FLOAT NOT NULL DEFAULT 0.0,
-            peso_neto FLOAT, 
-            factor_merma FLOAT DEFAULT 0.0,
-            existencias FLOAT DEFAULT 0.0
+            formato FLOAT NOT NULL DEFAULT 1.0,
+            peso_bruto FLOAT NOT NULL DEFAULT 1.0,
+            merma FLOAT NOT NULL DEFAULT 1.0,
+            peso_neto FLOAT NOT NULL DEFAULT 1.0, 
+            factor_merma FLOAT DEFAULT 1.0,
+            existencias FLOAT DEFAULT 1.0
         );
         '''
 
@@ -161,15 +161,15 @@ insert_inventory_data = '''
         'FAMILIA': 'VARCHAR', 
         'PROVEEDOR': 'VARCHAR', 
         'PRODUCTO': 'VARCHAR',
-        'UDNeto': 'FLOAT DEFAULT 0.0',
+        'UDNeto': 'FLOAT NOT NULL DEFAULT 1.0',
         'UDCompra': 'FLOAT DEFAULT 1.0',
         'UD': 'VARCHAR',
         'FORMATO': 'FLOAT',
-        'PESOBruto': 'FLOAT DEFAULT 0.0',
-        'MERMA': 'FLOAT DEFAULT 0.0',
-        'FACTORMerma': 'FLOAT DEFAULT 0.0',
-        'PESONeto': 'FLOAT DEFAULT 0.0',
-        'EXISTENCIAS': 'FLOAT DEFAULT 0.0'
+        'PESOBruto': 'FLOAT NOT NULL DEFAULT 1.0',
+        'MERMA': 'FLOAT NOT NULL DEFAULT 1.0',
+        'FACTORMerma': 'FLOAT NOT NULL DEFAULT 1.0',
+        'PESONeto': 'FLOAT NOT NULL DEFAULT 1.0',
+        'EXISTENCIAS': 'FLOAT NOT NULL DEFAULT 1.0'
         }
         )
         WHERE NOT EXISTS (SELECT * FROM inventario);
@@ -214,5 +214,43 @@ insert_menu_engine_value = '''
     'ALTO',
     'ALTO',
     'ESTRELLA');
+
+'''
+
+cross_platos_ingredientes = '''
+    SELECT DISTINCT 
+    p.id, 
+    p.nombre_plato, 
+    p.precio_venta, 
+    p.precio_neto, 
+    p.costo_receta, 
+    p.beneficio, 
+    i.nombre AS ingredientes, 
+    i.precio_compra 
+    FROM platos AS p 
+    LEFT JOIN plato_ingredientes AS pli 
+    ON p.id = pli.id_plato 
+    LEFT JOIN inventario AS i 
+    ON pli.id_inventario = i.id 
+    ORDER BY p.id ASC;
+'''
+
+correct_inventario_data = '''
+    UPDATE inventario 
+    SET precio_neto = COALESCE(precio_neto,1), 
+    precio_compra = COALESCE(precio_compra,1), 
+    peso_bruto = COALESCE(peso_bruto, 1), 
+    peso_neto = COALESCE(peso_neto,1), 
+    merma = COALESCE(merma,1), 
+    factor_merma = COALESCE(merma,1), 
+    existencias = COALESCE(existencias,1) 
+    WHERE 
+    precio_neto = 0 OR precio_neto IS NULL OR 
+    precio_compra = 0 OR precio_compra IS NULL OR 
+    peso_bruto = 0 OR peso_bruto IS NULL OR 
+    peso_neto = 0 OR peso_neto IS NULL OR 
+    merma = 0 OR merma IS NULL OR 
+    factor_merma = 0 OR factor_merma IS NULL OR 
+    existencias = 0 OR existencias IS NULL;
 
 '''

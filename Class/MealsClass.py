@@ -11,6 +11,7 @@ from st_aggrid import GridUpdateMode
 from st_aggrid import ColumnsAutoSizeMode
 from st_aggrid import AgGridTheme
 from bitstring import BitArray
+from pandas_profiling import ProfileReport
 from io import BytesIO
 
 
@@ -69,8 +70,12 @@ class StreamlitMealsProcess:
 
     def create_grid_meals_table(self, meals_data_frame):
         st.subheader('Tabla de Platos Existentes')
-        # meals_data_frame = self.meals_data()
-        # meals_data_frame = df
+        if st.button('Ver Reporte de platos'):
+            with st.spinner(f'Generando reporte de platos... por favor espere'):
+                df = pd.read_sql(f'SELECT * FROM platos', cursor)
+                profile = ProfileReport(df, title='Profiling Report', explorative=True, dark_mode=True)
+                pr_html = profile.to_html()
+                st.components.v1.html(pr_html, width=800, height=800, scrolling=True)
         gob = GridOptionsBuilder.from_dataframe(meals_data_frame)
         gob.configure_grid_options(domLayout='normal', 
                                 enableSorting=True, 
@@ -108,7 +113,7 @@ class StreamlitMealsProcess:
             meals_name = row_values[3]
             meals_portion = round(row_values[5],2)
             meals_sale_price = round(row_values[6],2)
-            meals_recipe_cost = round(row_values[7],2) 
+            meals_recipe_cost = round(row_values[7],2)
 
             with st.form(key='update_form', clear_on_submit=True):
                 st.subheader('Editar Plato')
@@ -154,49 +159,54 @@ class StreamlitMealsProcess:
                 actual_image = BytesIO(image_bytes)
                 st.image(actual_image, updated_name)
                 updated_img = st.file_uploader('Imagen', type=['jpg', 'jpeg'])
-    
-                update_button = st.form_submit_button(label='Update Plato', type='primary')
+
+                upt_btn1, upt_btn2 = st.columns([5,1], gap="small")
+                with upt_btn1:
+                    update_button = st.form_submit_button(label='Actualizar Plato', type='primary')
+                    if update_button:
+                        meals_id = meals_id
+                        updated_status_bin = BitArray(bin=updated_status_val).bin
+                        if updated_img is not None:
+                            updated_img_contents = updated_img.read()
+                            st.image(updated_img_contents, caption=f'{updated_name}')
+                            updated_img = base64.b64encode(updated_img_contents).decode('utf-8')
+                        else:
+                            # updated_img_contents = img_data.read()
+                            updated_img = base64.b64encode(image_bytes).decode('utf-8')
+                        cursor.execute(f'''
+                        UPDATE platos 
+                        SET 
+                        categoria='{updated_category}', 
+                        nombre_plato='{updated_name}',
+                        porcion_grs='{updated_portion}',
+                        precio_venta='{updated_sale_price}', 
+                        costo_receta='{updated_recipe_cost}',
+                        impuesto ='{updated_tax}',
+                        plato_activo = '{updated_status_bin}',
+                        zona = '{updated_zone}',
+                        numero_porciones = '{updated_num_portions}',
+                        tiempo_prep_mins = '{uptdated_prep_mins}',
+                        tiempo_coccion_mins = '{uptdated_cook_mins}',
+                        temp_serv_c = '{uptdated_temp_serv}',
+                        elaboracion = '{updated_elaboracion}',
+                        presentacion = '{updated_presentation}',
+                        equipo_elaboracion = '{updated_tools}',
+                        foto_plato = '{updated_img}'
+                        WHERE id = '{meals_id}'
+                        ''')
+                        cursor.commit()
+
+                        # display a success message
+                        st.success('¡Plato Actualizado!', icon="✅")
+                        time.sleep(2)
+                        st.experimental_rerun()
                 
-                if update_button:
-                    meals_id = meals_id
-                    updated_status_bin = BitArray(bin=updated_status_val).bin
-                    if updated_img is not None:
-                        updated_img_contents = updated_img.read()
-                        st.image(updated_img_contents, caption=f'{updated_name}')
-                        updated_img = base64.b64encode(updated_img_contents).decode('utf-8')
-                    else:
-                        # updated_img_contents = img_data.read()
-                        updated_img = base64.b64encode(image_bytes).decode('utf-8')
-                    cursor.execute(f'''
-                    UPDATE platos 
-                    SET 
-                    categoria='{updated_category}', 
-                    nombre_plato='{updated_name}',
-                    porcion_grs='{updated_portion}',
-                    precio_venta='{updated_sale_price}', 
-                    costo_receta='{updated_recipe_cost}',
-                    impuesto ='{updated_tax}',
-                    plato_activo = '{updated_status_bin}',
-                    zona = '{updated_zone}',
-                    numero_porciones = '{updated_num_portions}',
-                    tiempo_prep_mins = '{uptdated_prep_mins}',
-                    tiempo_coccion_mins = '{uptdated_cook_mins}',
-                    temp_serv_c = '{uptdated_temp_serv}',
-                    elaboracion = '{updated_elaboracion}',
-                    presentacion = '{updated_presentation}',
-                    equipo_elaboracion = '{updated_tools}',
-                    foto_plato = '{updated_img}'
-                    WHERE id = '{meals_id}'
-                    ''')
-                    cursor.commit()
-
-                    # display a success message
-                    st.success('Plato Actualizado!')
-                    time.sleep(2)
-                    st.experimental_rerun()
-
+                with upt_btn2:
+                    del_upt_buttom = st.form_submit_button('Borrar', type='secondary')
+                    if del_upt_buttom:
+                        st.write('En construcción. Plato no ha sido eliminado')
+                    
     
-            
     def add_meals_form(self):
         meals_data_frame = self.meals_data()
         with st.form(key='add_meals_form', clear_on_submit=False):
@@ -218,118 +228,75 @@ class StreamlitMealsProcess:
             else:
                 add_status_val = '0'
 
-            if 'data' not in st.session_state:
-                data = pd.DataFrame({'ID_PLATO':[],
-                                     'ID_INGREDIENTE':[],
-                                     'INGREDIENTE':[],
-                                     'PORCION (gr)':[],
-                                     'PRECIO': [],
-                                     'FACTOR MERMA': [],
-                                     'COSTE': []})
-                st.session_state.data = data
+            main_btn1, main_btn2 = st.columns((1,7))
+            with main_btn1:
+                add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
 
-            data = st.session_state.data
+                if add_button:
+                    add_category = add_category
+                    add_name = add_name
+                    add_tax = (add_tax / 100)
+                    add_status_bin = BitArray(bin=add_status_val).bin
+                    add_recipe_cost = float(add_recipe_cost)
+                    add_portion = float(add_portion)
+                    add_ingredients_data = pd.DataFrame(data)
+                    add_meals_ingredients_tuple = [tuple(row) for row in add_ingredients_data[['ID_PLATO', 'ID_INGREDIENTE']].values]
+                    # st.write(add_ingredients_data, unsafe_allow_html=True)
+                    if add_img is not None:
+                        add_img_contents = add_img.read()
+                        st.image(add_img_contents, caption=f'{add_name}')
+                        add_img = base64.b64encode(add_img_contents).decode('utf-8')
+                    else:
+                        img = open('img/oz_logo.jpg', 'rb')
+                        image_data = img.read()
+                        add_img = base64.b64encode(image_data).decode('utf-8')
+                    # execute a query to update the row in the table
+                    cursor.execute(f'''
+                    INSERT INTO platos 
+                    (id,
+                    categoria,
+                    nombre_plato,
+                    Fecha,
+                    porcion_grs,
+                    precio_venta,
+                    costo_receta,
+                    impuesto,
+                    foto_plato,
+                    plato_activo) VALUES (
+                    '{add_id}', 
+                    '{add_category}', 
+                    '{add_name}',
+                    '{add_date}',
+                    '{add_portion}',
+                    '{add_sale_price}', 
+                    '{add_recipe_cost}',
+                    '{add_tax}',
+                    '{add_img}',
+                    '{add_status_bin}'
+                    );
+                    ''')
+                    cursor.executemany(f'''
+                    INSERT INTO plato_ingredientes
+                    (id_plato,
+                    id_inventario) 
+                    VALUES (?,?); 
+                    ''', add_meals_ingredients_tuple)
+                    
 
-            def add_ingredient():
-
-                nombre = st.session_state.input_name
-                porcion = st.session_state.input_portion
-
-                temp_table = f"SELECT id, precio_compra, factor_merma FROM inventario WHERE nombre = '{nombre}'"
-                temp_df = pd.read_sql(temp_table, cursor)
-                id_ingrediente = temp_df['id'].values[0]
-                precio = temp_df['precio_compra'].values[0]
-                factor_merma = temp_df['factor_merma'].values[0]
-                # coste = (porcion * precio) / factor_merma
-                coste = porcion * precio
-                row = pd.DataFrame({'ID_PLATO':[add_id],
-                        'ID_INGREDIENTE':[id_ingrediente],
-                        'INGREDIENTE':[nombre],
-                        'PORCION (gr)':[porcion],
-                        'PRECIO':[precio],
-                        'FACTOR MERMA': [factor_merma],
-                        'COSTE':[coste]})
-                st.session_state.data = pd.concat([st.session_state.data, row])  
-
-            ex = st.expander('Agregar Ingredientes')
-            if ex:
-                ex.dataframe(data)
-                ingredient_query = 'SELECT DISTINCT nombre FROM inventario'
-                ingredient_values = pd.read_sql(ingredient_query, cursor)
-                ing1, ing2 = ex.columns([1,1])
-                with ing1:
-                    st.selectbox('INGREDIENTE', ingredient_values, key='input_name')
-                with ing2:
-                    st.number_input('PORCION (gr)', format='%f', key='input_portion')
-                ex.form_submit_button('agregar', type='primary', on_click=add_ingredient)
-                    # ex.write(data)
-
-            add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
-
-            if add_button:
-                add_category = add_category
-                add_name = add_name
-                add_tax = (add_tax / 100)
-                add_status_bin = BitArray(bin=add_status_val).bin
-                add_recipe_cost = float(add_recipe_cost)
-                add_portion = float(add_portion)
-                add_ingredients_data = pd.DataFrame(data)
-                add_meals_ingredients_tuple = [tuple(row) for row in add_ingredients_data[['ID_PLATO', 'ID_INGREDIENTE']].values]
-                # st.write(add_ingredients_data, unsafe_allow_html=True)
-                if add_img is not None:
-                    add_img_contents = add_img.read()
-                    st.image(add_img_contents, caption=f'{add_name}')
-                    add_img = base64.b64encode(add_img_contents).decode('utf-8')
-                else:
-                    img = open('img/oz_logo.jpg', 'rb')
-                    image_data = img.read()
-                    add_img = base64.b64encode(image_data).decode('utf-8')
-                # execute a query to update the row in the table
-                cursor.execute(f'''
-                INSERT INTO platos 
-                (id,
-                categoria,
-                nombre_plato,
-                Fecha,
-                porcion_grs,
-                precio_venta,
-                costo_receta,
-                impuesto,
-                foto_plato,
-                plato_activo) VALUES (
-                '{add_id}', 
-                '{add_category}', 
-                '{add_name}',
-                '{add_date}',
-                '{add_portion}',
-                '{add_sale_price}', 
-                '{add_recipe_cost}',
-                '{add_tax}',
-                '{add_img}',
-                '{add_status_bin}'
-                );
-                ''')
-                cursor.executemany(f'''
-                INSERT INTO plato_ingredientes
-                (id_plato,
-                id_inventario) 
-                VALUES (?,?); 
-                ''', add_meals_ingredients_tuple)
-                
-                
-                cursor.commit()
-
-                # display a success message
-                st.success('Nuevo plato agregado')
-                time.sleep(1)
-                st.experimental_rerun()
+                    cursor.commit()
+                    # display a success message
+                    st.success('Nuevo plato agregado')
+                    time.sleep(1)
+                    st.experimental_rerun()
+            with main_btn2:
+                exit_buttom = st.form_submit_button('Cancelar', type='secondary')
+                if exit_buttom:
+                    self.search_meal_engine()
                 
                 
     
     def search_meal_engine(self):
         search_term = st.text_input('Buscar Plato')
-        # search_term = search_term.lower()
-        # df = pd.DataFrame(df)
         df_table = self.meals_data()
         m1 = df_table["NOMBRE PLATO"].str.lower().str.contains(search_term.lower())
         m2 = df_table["CATEGORIA"].str.lower().str.contains(search_term.lower())
