@@ -33,19 +33,18 @@ class StreamlitSalesMealsClass:
 
     def display_data(self):
             # Create a file uploader
-        uploaded_file = st.file_uploader("Upload a file", type=["xlsx", "xls"])
+        st.subheader("Meal Sales")
+        uploaded_file = st.file_uploader("Upload Sales File", type=["xlsx", "xls"])
         if uploaded_file is not None:
             file_path = f"Uploads/{uploaded_file.name}"
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.read())
-            st.success("File uploaded successfully!")
             sales_data_xls = pd.read_excel(file_path, sheet_name='Hoja1')
-            try:
-                cursor.execute("INSERT OR IGNORE INTO ventas_productos SELECT * FROM sales_data_xls;")
-                # con.commit()
-            except:
-                print("Foreign key constraint violation. Insertion ignored.")
-            
-            sales_data = pd.read_sql('SELECT * FROM ventas_productos;', cursor)
-            st.dataframe(sales_data)
+            sales_data_xls = sales_data_xls.rename(columns={"Codigo": "id"})
+            df = pd.read_sql("SELECT id FROM platos", cursor)
+            sales_df = pd.merge(sales_data_xls, df, on='id')
+            cursor.execute("INSERT INTO ventas_productos SELECT * FROM sales_df;")
+            st.success("Sales uploaded successfully!")
+        sales_data = self.sales_data()
+        st.dataframe(sales_data, use_container_width=True, hide_index=True)
     

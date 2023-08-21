@@ -99,7 +99,6 @@ def main():
 
 
     elif selection_menu == 'Ventas':
-         st.write("construcción")
          sales.display_data()      
 
 

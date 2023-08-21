@@ -91,7 +91,6 @@ create_sales_table = '''
         id_plato INTEGER,
         nombre_plato VARCHAR(50),
         unidades_vendidas REAL NOT NULL DEFAULT 0.0,
-        PRIMARY KEY (id_plato),
         FOREIGN KEY (id_plato) REFERENCES platos (id)
     );
 
