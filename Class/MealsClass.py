@@ -17,11 +17,15 @@ from io import BytesIO
 
 con = ConnectionDB('DB/engineMenu_v43.db')
 cursor = con.cursor()
-inventori = StreamlitStockProcess(con)
 
 class StreamlitMealsProcess:
     def __init__(self, con):
         self.con = con
+
+    def get_image(self, img_data):
+        image_bytes = base64.b64decode(img_data)
+        actual_image = BytesIO(image_bytes)
+        return actual_image
     
     def meals_data(self):
         meals_data = pd.read_sql(
@@ -66,6 +70,189 @@ class StreamlitMealsProcess:
         ''', cursor)
 
         return expander_data
+    
+    def add_meals_form(self, cursor):
+        try:
+            meals_data_frame = self.meals_data()
+            with st.form(key='add_meals_form', clear_on_submit=True):
+                st.write('Nuevo Plato')
+                add_id = st.number_input('ID', min_value=0 ,value=meals_data_frame['ID'].iloc[-1] + 1, format='%d')
+                add_name = st.text_input('NOMBRE', value="")
+                add_category = st.text_input('CATEGORÍA', value="")
+                add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
+                add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)
+                add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f', value=0.0)
+                add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f', value=0.0)
+                add_tax = st.number_input('IMPUESTO (%)', min_value=4.0, max_value=21.0, value = 10.0, step=1.0, format='%.2f')
+                add_img = st.file_uploader('Imagen', type=['jpg', 'jepg'])
+        
+                add_status = st.checkbox('¿Plato Activo?')
+                if add_status:
+                    add_status_val = '1'
+                else:
+                    add_status_val = '0'
+
+                main_btn1, main_btn2 = st.columns((1,7))
+                with main_btn1:
+                    add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
+                    if add_button:
+                        add_tax = (add_tax / 100)
+                        add_status_bin = BitArray(bin=add_status_val).bin
+                        add_recipe_cost = float(add_recipe_cost)
+                        add_portion = float(add_portion)
+                        # add_ingredients_data = pd.DataFrame(data)
+                        # add_meals_ingredients_tuple = [tuple(row) for row in add_ingredients_data[['ID_PLATO', 'ID_INGREDIENTE']].values]
+                        # st.write(add_ingredients_data, unsafe_allow_html=True)
+                        if add_img is not None:
+                            add_img_contents = add_img.read()
+                            st.image(add_img_contents, caption=f'{add_name}')
+                            add_img = base64.b64encode(add_img_contents).decode('utf-8')
+                        else:
+                            img = open('img/oz_logo.jpg', 'rb')
+                            image_data = img.read()
+                            add_img = base64.b64encode(image_data).decode('utf-8')
+                        # execute a query to update the row in the table
+                        cursor.execute(f'''
+                        INSERT INTO platos 
+                        (id,
+                        categoria,
+                        nombre_plato,
+                        Fecha,
+                        porcion_grs,
+                        precio_venta,
+                        costo_receta,
+                        impuesto,
+                        foto_plato,
+                        plato_activo) VALUES (
+                        '{add_id}', 
+                        '{add_category}', 
+                        '{add_name}',
+                        '{add_date}',
+                        '{add_portion}',
+                        '{add_sale_price}', 
+                        '{add_recipe_cost}',
+                        '{add_tax}',
+                        '{add_img}',
+                        '{add_status_bin}'
+                        );
+                        ''')
+                        # cursor.executemany(f'''
+                        # INSERT INTO plato_ingredientes
+                        # (id_plato,
+                        # id_inventario) 
+                        # VALUES (?,?); 
+                        # ''', add_meals_ingredients_tuple)
+                        
+                        cursor.commit()
+                        # display a success message
+                        st.success('Nuevo plato agregado')
+                        time.sleep(2)
+                        st.experimental_rerun()
+                with main_btn2:
+                    exit_buttom = st.form_submit_button('Cancelar', type='secondary')
+                    if exit_buttom:
+                        self.search_meal_engine_table()
+        except Exception as e:
+        # Display the error message
+            print(f"An error occurred: {str(e)}")
+            st.error(f"An error occurred: {str(e)}")
+
+    def update_meal_form(self, meals_id, 
+                         meals_category, 
+                         meals_name, 
+                         meals_portion, 
+                         meals_sale_price, 
+                         meals_recipe_cost,
+                        expander_data, 
+                     cursor):
+        with st.form(key='update_form', clear_on_submit=True):
+            st.subheader('Editar Plato')
+            meals_tax = 0.1
+            updated_name = st.text_input('NOMBRE', value=meals_name)
+            updated_category = st.text_input('CATEGORÍA', value=meals_category)
+            updated_portion = st.number_input('PORCIONES (grs)', value=float(meals_portion), format='%f')
+            updated_sale_price = st.number_input('PRECIO VENTA (€)', value=meals_sale_price, format='%f')
+            updated_recipe_cost = st.number_input('COSTE RECETA (€)', value=float(meals_recipe_cost), format='%.2f')
+            updated_tax = st.number_input('IMPUESTO', value=meals_tax, format='%.2f')
+            updated_status = st.checkbox('¿Plato Activo?', value=True)
+            if updated_status:
+                updated_status_val = '1'
+            else:
+                updated_status_val = '0'
+
+            meals_id = meals_id
+            meals_zone = expander_data['zona'].values[0]
+            updated_zone = st.text_input('ZONA', value=meals_zone)
+            updated_num_portions = st.number_input('Nº PORCIONES', value=float(expander_data['numero_porciones'].values[0]),
+                                                format='%f')
+            uptdated_prep_mins = st.number_input('TIEMPO PREPARACIÓN (mins)', value=expander_data['tiempo_prep_mins'].values[0])
+            uptdated_cook_mins = st.number_input('TIEMPO COCCIÓN (mins)', value=expander_data['tiempo_coccion_mins'].values[0])
+            uptdated_temp_serv = st.number_input('TEMPERATURA SERVICIO (ºC)',
+                                                value=expander_data['tiempo_coccion_mins'].values[0])
+            updated_elaboracion = st.text_area('ELABORACIÓN',
+                                            value=expander_data['elaboracion'].values[0],
+                                            max_chars=1000,
+                                            height=12,
+                                            placeholder='Describe la elaboracón del plato (1000 caracteres)')
+            updated_presentation = st.text_area('PRESENTACIÓN',
+                                                value=expander_data['presentacion'].values[0],
+                                                max_chars=500,
+                                                height=8,
+                                                placeholder='Describe la presentación del plato (400 caracteres)')
+            updated_tools = st.text_area('EQUIPO DE ELABORACIÓN',
+                                        value=expander_data['equipo_elaboracion'].values[0],
+                                        max_chars=500,
+                                        height=8,
+                                        placeholder='Menciona el equipo necesario para elaboración (400 caracteres)')
+
+            img_data = expander_data['foto_plato'].values[0]
+            actual_image = self.get_image(img_data=img_data)
+            st.image(actual_image, updated_name)
+            updated_img = st.file_uploader('Imagen', type=['jpg', 'jpeg'])
+
+            upt_btn1, upt_btn2 = st.columns([5, 1], gap="small")
+            with upt_btn1:
+                update_button = st.form_submit_button(label='Actualizar Plato', type='primary')
+                if update_button:
+                    meals_id = meals_id
+                    updated_status_bin = BitArray(bin=updated_status_val).bin
+                    if updated_img is not None:
+                        updated_img_contents = updated_img.read()
+                        st.image(updated_img_contents, caption=f'{updated_name}')
+                        updated_img = base64.b64encode(updated_img_contents).decode('utf-8')
+                    else:
+                        updated_img = base64.b64encode(image_bytes).decode('utf-8')
+                    cursor.execute(f'''
+                    UPDATE platos 
+                    SET 
+                    categoria='{updated_category}', 
+                    nombre_plato='{updated_name}',
+                    porcion_grs='{updated_portion}',
+                    precio_venta='{updated_sale_price}', 
+                    costo_receta='{updated_recipe_cost}',
+                    impuesto ='{updated_tax}',
+                    plato_activo = '{updated_status_bin}',
+                    zona = '{updated_zone}',
+                    numero_porciones = '{updated_num_portions}',
+                    tiempo_prep_mins = '{uptdated_prep_mins}',
+                    tiempo_coccion_mins = '{uptdated_cook_mins}',
+                    temp_serv_c = '{uptdated_temp_serv}',
+                    elaboracion = '{updated_elaboracion}',
+                    presentacion = '{updated_presentation}',
+                    equipo_elaboracion = '{updated_tools}',
+                    foto_plato = '{updated_img}'
+                    WHERE id = '{meals_id}'
+                    ''')
+                    cursor.commit()
+
+                    # display a success message
+                    st.success('¡Plato Actualizado!', icon="✅")
+                    time.sleep(2)
+                    st.experimental_rerun()
+            with upt_btn2:
+                del_upt_buttom = st.form_submit_button('Borrar', type='secondary')
+                if del_upt_buttom:
+                    st.write('En construcción. Plato no ha sido eliminado')
 
 
     def create_grid_meals_table(self, meals_data_frame):
@@ -114,198 +301,59 @@ class StreamlitMealsProcess:
             meals_portion = round(row_values[5],2)
             meals_sale_price = round(row_values[6],2)
             meals_recipe_cost = round(row_values[7],2)
+            expander_data = self.get_expander_data(id=meals_id)
 
-            with st.form(key='update_form', clear_on_submit=True):
-                st.subheader('Editar Plato')
-                meals_tax=0.1
-                updated_name = st.text_input('NOMBRE', value = meals_name)
-                updated_category = st.text_input('CATEGORÍA', value= meals_category)
-                updated_portion = st.number_input('PORCIONES (grs)', value=float(meals_portion), format='%f')
-                updated_sale_price = st.number_input('PRECIO VENTA (€)', value=meals_sale_price, format='%f')
-                updated_recipe_cost = st.number_input('COSTE RECETA (€)', value= float(meals_recipe_cost), format='%.2f')
-                updated_tax = st.number_input('IMPUESTO', value=meals_tax, format='%.2f')
-                updated_status = st.checkbox('¿Plato Activo?',value=True)
-                if updated_status:
-                    updated_status_val = '1'
-                else:
-                    updated_status_val = '0'
-
-                meals_id = meals_id
-                expander_data = self.get_expander_data(id=meals_id)
-                meals_zone = expander_data['zona'].values[0]
-                updated_zone = st.text_input('ZONA', value = meals_zone)
-                updated_num_portions = st.number_input('Nº PORCIONES', value = float(expander_data['numero_porciones'].values[0]), format='%f')
-                uptdated_prep_mins = st.number_input('TIEMPO PREPARACIÓN (mins)', value = expander_data['tiempo_prep_mins'].values[0])
-                uptdated_cook_mins = st.number_input('TIEMPO COCCIÓN (mins)', value = expander_data['tiempo_coccion_mins'].values[0])
-                uptdated_temp_serv = st.number_input('TEMPERATURA SERVICIO (ºC)', value = expander_data['tiempo_coccion_mins'].values[0])
-                updated_elaboracion = st.text_area('ELABORACIÓN', 
-                                                    value = expander_data['elaboracion'].values[0],
-                                                    max_chars=1000, 
-                                                    height=12, 
-                                                    placeholder='Describe la elaboracón del plato (1000 caracteres)')
-                updated_presentation = st.text_area('PRESENTACIÓN', 
-                                                    value = expander_data['presentacion'].values[0],
-                                                    max_chars=500, 
-                                                    height=8, 
-                                                    placeholder='Describe la presentación del plato (400 caracteres)')
-                updated_tools = st.text_area('EQUIPO DE ELABORACIÓN', 
-                                                    value = expander_data['equipo_elaboracion'].values[0],
-                                                    max_chars=500, 
-                                                    height=8, 
-                                                    placeholder='Menciona el equipo necesario para elaboración (400 caracteres)')
-                
-                img_data = expander_data['foto_plato'].values[0]
-                image_bytes = base64.b64decode(img_data)
-                actual_image = BytesIO(image_bytes)
-                st.image(actual_image, updated_name)
-                updated_img = st.file_uploader('Imagen', type=['jpg', 'jpeg'])
-
-                upt_btn1, upt_btn2 = st.columns([5,1], gap="small")
-                with upt_btn1:
-                    update_button = st.form_submit_button(label='Actualizar Plato', type='primary')
-                    if update_button:
-                        meals_id = meals_id
-                        updated_status_bin = BitArray(bin=updated_status_val).bin
-                        if updated_img is not None:
-                            updated_img_contents = updated_img.read()
-                            st.image(updated_img_contents, caption=f'{updated_name}')
-                            updated_img = base64.b64encode(updated_img_contents).decode('utf-8')
-                        else:
-                            # updated_img_contents = img_data.read()
-                            updated_img = base64.b64encode(image_bytes).decode('utf-8')
-                        cursor.execute(f'''
-                        UPDATE platos 
-                        SET 
-                        categoria='{updated_category}', 
-                        nombre_plato='{updated_name}',
-                        porcion_grs='{updated_portion}',
-                        precio_venta='{updated_sale_price}', 
-                        costo_receta='{updated_recipe_cost}',
-                        impuesto ='{updated_tax}',
-                        plato_activo = '{updated_status_bin}',
-                        zona = '{updated_zone}',
-                        numero_porciones = '{updated_num_portions}',
-                        tiempo_prep_mins = '{uptdated_prep_mins}',
-                        tiempo_coccion_mins = '{uptdated_cook_mins}',
-                        temp_serv_c = '{uptdated_temp_serv}',
-                        elaboracion = '{updated_elaboracion}',
-                        presentacion = '{updated_presentation}',
-                        equipo_elaboracion = '{updated_tools}',
-                        foto_plato = '{updated_img}'
-                        WHERE id = '{meals_id}'
-                        ''')
-                        cursor.commit()
-
-                        # display a success message
-                        st.success('¡Plato Actualizado!', icon="✅")
-                        time.sleep(2)
-                        st.experimental_rerun()
-                
-                with upt_btn2:
-                    del_upt_buttom = st.form_submit_button('Borrar', type='secondary')
-                    if del_upt_buttom:
-                        st.write('En construcción. Plato no ha sido eliminado')
-                    
+            self.update_meal_form(meals_id, 
+                         meals_category, 
+                         meals_name, 
+                         meals_portion, 
+                         meals_sale_price, 
+                         meals_recipe_cost,
+                         expander_data=expander_data, cursor=cursor)            
     
-    def add_meals_form(self):
-        meals_data_frame = self.meals_data()
-        with st.form(key='add_meals_form', clear_on_submit=False):
-        # with st.container():
-            st.write('Nuevo Plato')
-            add_id = st.number_input('ID', min_value=0 ,value=meals_data_frame['ID'].iloc[-1] + 1, format='%d')
-            add_name = st.text_input('NOMBRE', value="")
-            add_category = st.text_input('CATEGORÍA', value="")
-            add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
-            add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)
-            add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f', value=0.0)
-            add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f', value=0.0)
-            add_tax = st.number_input('IMPUESTO (%)', min_value=4.0, max_value=21.0, value = 10.0, step=1.0, format='%.2f')
-            add_img = st.file_uploader('Imagen', type=['jpg', 'jepg'])
-    
-            add_status = st.checkbox('¿Plato Activo?')
-            if add_status:
-                add_status_val = '1'
-            else:
-                add_status_val = '0'
-
-            main_btn1, main_btn2 = st.columns((1,7))
-            with main_btn1:
-                add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
-
-                if add_button:
-                    add_category = add_category
-                    add_name = add_name
-                    add_tax = (add_tax / 100)
-                    add_status_bin = BitArray(bin=add_status_val).bin
-                    add_recipe_cost = float(add_recipe_cost)
-                    add_portion = float(add_portion)
-                    add_ingredients_data = pd.DataFrame(data)
-                    add_meals_ingredients_tuple = [tuple(row) for row in add_ingredients_data[['ID_PLATO', 'ID_INGREDIENTE']].values]
-                    # st.write(add_ingredients_data, unsafe_allow_html=True)
-                    if add_img is not None:
-                        add_img_contents = add_img.read()
-                        st.image(add_img_contents, caption=f'{add_name}')
-                        add_img = base64.b64encode(add_img_contents).decode('utf-8')
-                    else:
-                        img = open('img/oz_logo.jpg', 'rb')
-                        image_data = img.read()
-                        add_img = base64.b64encode(image_data).decode('utf-8')
-                    # execute a query to update the row in the table
-                    cursor.execute(f'''
-                    INSERT INTO platos 
-                    (id,
-                    categoria,
-                    nombre_plato,
-                    Fecha,
-                    porcion_grs,
-                    precio_venta,
-                    costo_receta,
-                    impuesto,
-                    foto_plato,
-                    plato_activo) VALUES (
-                    '{add_id}', 
-                    '{add_category}', 
-                    '{add_name}',
-                    '{add_date}',
-                    '{add_portion}',
-                    '{add_sale_price}', 
-                    '{add_recipe_cost}',
-                    '{add_tax}',
-                    '{add_img}',
-                    '{add_status_bin}'
-                    );
-                    ''')
-                    cursor.executemany(f'''
-                    INSERT INTO plato_ingredientes
-                    (id_plato,
-                    id_inventario) 
-                    VALUES (?,?); 
-                    ''', add_meals_ingredients_tuple)
-                    
-
-                    cursor.commit()
-                    # display a success message
-                    st.success('Nuevo plato agregado')
-                    time.sleep(1)
-                    st.experimental_rerun()
-            with main_btn2:
-                exit_buttom = st.form_submit_button('Cancelar', type='secondary')
-                if exit_buttom:
-                    self.search_meal_engine()
-                
-                
-    
-    def search_meal_engine(self):
-        search_term = st.text_input('Buscar Plato')
+    def search_meal_engine_table(self):
+        search_term = st.text_input('Buscar')
         df_table = self.meals_data()
         m1 = df_table["NOMBRE PLATO"].str.lower().str.contains(search_term.lower())
         m2 = df_table["CATEGORIA"].str.lower().str.contains(search_term.lower())
         df_search = df_table[m1 | m2]
         if search_term:
-            # st.write(df_search)
             self.create_grid_meals_table(meals_data_frame=df_search)
         else:
             self.create_grid_meals_table(meals_data_frame=df_table)
+
+
+    def search_meal_engine_cards(self):
+        search_term = st.text_input('Buscar Plato')
+        df_table = self.meals_data()
+        fotos_platos = pd.read_sql('SELECT id, foto_plato FROM platos', cursor)
+        m1 = df_table["NOMBRE PLATO"].str.lower().str.contains(search_term.lower())
+        m2 = df_table["CATEGORIA"].str.lower().str.contains(search_term.lower())
+        df_search = df_table[m1 | m2]
+        N_cards_per_row = 3
+        if search_term:
+            for n_row, row in df_search.reset_index().iterrows():
+                i = n_row%N_cards_per_row
+                if i==0:
+                    st.write("---")
+                    cols = st.columns(N_cards_per_row, gap="large")
+                    # draw the card
+                with cols[n_row%N_cards_per_row]:
+                    st.caption(f"{row['NOMBRE PLATO'].strip()} - {row['CATEGORIA'].strip()} - {row['FECHA'].strftime('%Y-%m-%d')}")
+                    col1, col2 = st.columns([1, 2])
+                with col1:
+                    st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
+                    st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")
+                    btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
+                    if btn:
+                        st.markdown('Diseñar Presentación')
+                with col2:
+                    st.markdown(f"**ID:** {row['ID']}")
+                    selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]
+                    st.image(self.get_image(selected_foto_plato), caption=row['NOMBRE PLATO'], use_column_width=True)
+
+
+
             
 
 

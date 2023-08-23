@@ -88,10 +88,14 @@ def main():
             inventori.search_stock_engine()
 
     elif selection_menu == 'Platos':
-        if st.button('Agregar Plato', type='primary'):
-            meals.add_meals_form()
-        else:
-            meals.search_meal_engine()
+        cards, table = st.tabs(['Tarjetas', 'Tabla'])
+        with table:
+            if st.button('Agregar Plato', type='primary'):
+                meals.add_meals_form(cursor=cursor)
+            else:
+                meals.search_meal_engine_table()
+        with cards:
+            meals.search_meal_engine_cards()
         
 
     elif selection_menu == 'Analisis':
