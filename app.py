@@ -4,6 +4,7 @@ from Class.IngredientClass import IngredientClass
 from Class.HomeClass import HomeClass
 from Class.ConnectionDB import ConnectionDB
 from Class.SalesMealsClass import StreamlitSalesMealsClass
+from Class.MenuEngineeringClass import MenuEngineeringClass
 import streamlit as st
 import pandas as pd
 import queries
@@ -20,6 +21,7 @@ meals = StreamlitMealsProcess(con)
 # ingredients = IngredientClass(con)
 home_page = HomeClass()
 sales = StreamlitSalesMealsClass(con)
+menu_engine = MenuEngineeringClass(con=con)
 
 css_styles = '''
 <style>
@@ -99,7 +101,8 @@ def main():
         
 
     elif selection_menu == 'Analisis':
-            st.write('En construcción')
+        menu_engine.date_slider()
+            
 
 
     elif selection_menu == 'Ventas':
