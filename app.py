@@ -77,28 +77,26 @@ def main():
         home_page.show_home()
         
     elif selection_menu == 'Inventario':
-        if st.button('Agregar Ingrediente', type='primary', key='main_btn2'):
-            # elif submenu_choice == 'Agregar':
+        table_in, adding_in = st.tabs(['TABLA', 'AGREGAR'])
+        with table_in:
+            inventori.search_stock_engine()
+        with adding_in:
             st.subheader('Add a new product')
             product_name = st.text_input('Product Name')
             product_description = st.text_area('Product Description')
             product_price = st.number_input('Product Price', step=0.01, format='%0.2f')
             if st.button('Submit'):
-            # Add product to database or save data to file
                 st.success('Product added successfully!')
-        else:
-            inventori.search_stock_engine()
+            
 
     elif selection_menu == 'Platos':
-        cards, table = st.tabs(['Tarjetas', 'Tabla'])
+        cards, table, adding = st.tabs(['CARDS', 'TABLA', 'AGREGAR'])
         with table:
-            if st.button('Agregar Plato', type='primary'):
-                meals.add_meals_form(cursor=cursor)
-            else:
-                meals.search_meal_engine_table()
+            meals.search_meal_engine_table()
         with cards:
             meals.search_meal_engine_cards()
-        
+        with adding:
+            meals.add_meals_form()
 
     elif selection_menu == 'Analisis':
         menu_engine.date_slider()

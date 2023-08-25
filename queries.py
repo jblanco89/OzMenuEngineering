@@ -6,7 +6,7 @@ create_inventory_table = '''
             proveedor VARCHAR(255),
             nombre VARCHAR(255),
             precio_neto FLOAT NOT NULL DEFAULT 1.0,
-            precio_compra FLOAT NOT NULL DEFAULT 1.0,
+            precio_compra FLOAT DEFAULT 1.0,
             unidad_compra VARCHAR(50),
             formato FLOAT NOT NULL DEFAULT 1.0,
             peso_bruto FLOAT NOT NULL DEFAULT 1.0,
@@ -62,8 +62,8 @@ create_meal_ingredient_table = '''
         id_plato INTEGER,
         id_inventario INTEGER,
         PRIMARY KEY (id_plato, id_inventario),
-        FOREIGN KEY (id_plato) REFERENCES platos (id),
-        FOREIGN KEY (id_inventario) REFERENCES inventario (id)
+        FOREIGN KEY (id_plato) REFERENCES platos (id) ON DELETE CASCADE,
+        FOREIGN KEY (id_inventario) REFERENCES inventario (id) ON DELETE CASCADE
         );
 
 '''
@@ -81,7 +81,7 @@ create_menu_engine_table = '''
         popularidad VARCHAR(16) DEFAULT NULL,
         clasificacion VARCHAR(16) DEFAULT NULL,
         PRIMARY KEY (id_plato),
-        FOREIGN KEY (id_plato) REFERENCES platos (id)
+        FOREIGN KEY (id_plato) REFERENCES platos (id) ON DELETE CASCADE
         );
 '''
 
@@ -91,7 +91,7 @@ create_sales_table = '''
         id_plato INTEGER,
         nombre_plato VARCHAR(50),
         unidades_vendidas REAL NOT NULL DEFAULT 0.0,
-        FOREIGN KEY (id_plato) REFERENCES platos (id)
+        FOREIGN KEY (id_plato) REFERENCES platos (id) ON DELETE CASCADE
     );
 
 '''
@@ -161,7 +161,7 @@ insert_inventory_data = '''
         'PROVEEDOR': 'VARCHAR', 
         'PRODUCTO': 'VARCHAR',
         'UDNeto': 'FLOAT NOT NULL DEFAULT 1.0',
-        'UDCompra': 'FLOAT DEFAULT 1.0',
+        'UDCompra': 'FLOAT',
         'UD': 'VARCHAR',
         'FORMATO': 'FLOAT',
         'PESOBruto': 'FLOAT NOT NULL DEFAULT 1.0',

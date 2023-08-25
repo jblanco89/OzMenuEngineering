@@ -71,91 +71,84 @@ class StreamlitMealsProcess:
 
         return expander_data
     
-    def add_meals_form(self, cursor):
-        try:
-            meals_data_frame = self.meals_data()
-            with st.form(key='add_meals_form', clear_on_submit=True):
-                st.write('Nuevo Plato')
-                add_id = st.number_input('ID', min_value=0 ,value=meals_data_frame['ID'].iloc[-1] + 1, format='%d')
-                add_name = st.text_input('NOMBRE', value="")
-                add_category = st.text_input('CATEGORÍA', value="")
-                add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
-                add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)
-                add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f', value=0.0)
-                add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f', value=0.0)
-                add_tax = st.number_input('IMPUESTO (%)', min_value=4.0, max_value=21.0, value = 10.0, step=1.0, format='%.2f')
-                add_img = st.file_uploader('Imagen', type=['jpg', 'jepg'])
-        
-                add_status = st.checkbox('¿Plato Activo?')
-                if add_status:
-                    add_status_val = '1'
-                else:
-                    add_status_val = '0'
 
-                main_btn1, main_btn2 = st.columns((1,7))
-                with main_btn1:
-                    add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
-                    if add_button:
-                        add_tax = (add_tax / 100)
-                        add_status_bin = BitArray(bin=add_status_val).bin
-                        add_recipe_cost = float(add_recipe_cost)
-                        add_portion = float(add_portion)
-                        # add_ingredients_data = pd.DataFrame(data)
-                        # add_meals_ingredients_tuple = [tuple(row) for row in add_ingredients_data[['ID_PLATO', 'ID_INGREDIENTE']].values]
-                        # st.write(add_ingredients_data, unsafe_allow_html=True)
-                        if add_img is not None:
-                            add_img_contents = add_img.read()
-                            st.image(add_img_contents, caption=f'{add_name}')
-                            add_img = base64.b64encode(add_img_contents).decode('utf-8')
-                        else:
-                            img = open('img/oz_logo.jpg', 'rb')
-                            image_data = img.read()
-                            add_img = base64.b64encode(image_data).decode('utf-8')
-                        # execute a query to update the row in the table
-                        cursor.execute(f'''
-                        INSERT INTO platos 
-                        (id,
-                        categoria,
-                        nombre_plato,
-                        Fecha,
-                        porcion_grs,
-                        precio_venta,
-                        costo_receta,
-                        impuesto,
-                        foto_plato,
-                        plato_activo) VALUES (
-                        '{add_id}', 
-                        '{add_category}', 
-                        '{add_name}',
-                        '{add_date}',
-                        '{add_portion}',
-                        '{add_sale_price}', 
-                        '{add_recipe_cost}',
-                        '{add_tax}',
-                        '{add_img}',
-                        '{add_status_bin}'
-                        );
-                        ''')
-                        # cursor.executemany(f'''
-                        # INSERT INTO plato_ingredientes
-                        # (id_plato,
-                        # id_inventario) 
-                        # VALUES (?,?); 
-                        # ''', add_meals_ingredients_tuple)
-                        
-                        cursor.commit()
-                        # display a success message
-                        st.success('Nuevo plato agregado')
-                        time.sleep(2)
-                        st.experimental_rerun()
-                with main_btn2:
-                    exit_buttom = st.form_submit_button('Cancelar', type='secondary')
-                    if exit_buttom:
-                        self.search_meal_engine_table()
-        except Exception as e:
-        # Display the error message
-            print(f"An error occurred: {str(e)}")
-            st.error(f"An error occurred: {str(e)}")
+    def add_meals_form(self):
+        meals_data_frame = self.meals_data()
+        with st.form(key='add_meals_form', clear_on_submit=False):
+            st.write('Nuevo Plato')
+            add_id = st.number_input('ID', min_value=0 ,value=meals_data_frame['ID'].iloc[-1] + 1, format='%d')
+            add_name = st.text_input('NOMBRE', value="")
+            add_category = st.text_input('CATEGORÍA', value="")
+            add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
+            add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)
+            add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f', value=0.0)
+            add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f', value=0.0)
+            add_tax = st.number_input('IMPUESTO (%)', min_value=4.0, max_value=21.0, value = 10.0, step=1.0, format='%.2f')
+            add_img = st.file_uploader('Imagen', type=['jpg', 'jepg'])
+    
+            add_status = st.checkbox('¿Plato Activo?')
+            if add_status:
+                add_status_val = '1'
+            else:
+                add_status_val = '0'
+            
+            main_btn1, main_btn2 = st.columns((1,7))
+            with main_btn1:
+                add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
+                if add_button:
+                    add_tax = (add_tax / 100)
+                    add_status_bin = BitArray(bin=add_status_val).bin
+                    add_recipe_cost = float(add_recipe_cost)
+                    add_portion = float(add_portion)
+                    if add_img is not None:
+                        add_img_contents = add_img.read()
+                        st.image(add_img_contents, caption=f'{add_name}')
+                        add_img = base64.b64encode(add_img_contents).decode('utf-8')
+                    else:
+                        img = open('img/oz_logo.jpg', 'rb')
+                        image_data = img.read()
+                        add_img = base64.b64encode(image_data).decode('utf-8')
+                    # execute a query to update the row in the table
+                    cursor.execute(f'''
+                    INSERT INTO platos 
+                    (id,
+                    categoria,
+                    nombre_plato,
+                    Fecha,
+                    porcion_grs,
+                    precio_venta,
+                    costo_receta,
+                    impuesto,
+                    foto_plato,
+                    plato_activo) VALUES (
+                    '{add_id}', 
+                    '{add_category}', 
+                    '{add_name}',
+                    '{add_date}',
+                    '{add_portion}',
+                    '{add_sale_price}', 
+                    '{add_recipe_cost}',
+                    '{add_tax}',
+                    '{add_img}',
+                    '{add_status_bin}'
+                    );
+                    ''')
+                    # cursor.executemany(f'''
+                    # INSERT INTO plato_ingredientes
+                    # (id_plato,
+                    # id_inventario) 
+                    # VALUES (?,?); 
+                    # ''', add_meals_ingredients_tuple)
+                    
+                    cursor.commit()
+                    # display a success message
+                    st.success('Nuevo plato agregado')
+                    time.sleep(2)
+                    st.experimental_rerun()
+            with main_btn2:
+                exit_buttom = st.form_submit_button('Cancelar', type='secondary')
+                if exit_buttom:
+                    self.search_meal_engine_table()
 
     def update_meal_form(self, meals_id, 
                          meals_category, 
@@ -206,6 +199,7 @@ class StreamlitMealsProcess:
                                         placeholder='Menciona el equipo necesario para elaboración (400 caracteres)')
 
             img_data = expander_data['foto_plato'].values[0]
+            image_bytes = base64.b64decode(img_data)
             actual_image = self.get_image(img_data=img_data)
             st.image(actual_image, updated_name)
             updated_img = st.file_uploader('Imagen', type=['jpg', 'jpeg'])
@@ -221,6 +215,7 @@ class StreamlitMealsProcess:
                         st.image(updated_img_contents, caption=f'{updated_name}')
                         updated_img = base64.b64encode(updated_img_contents).decode('utf-8')
                     else:
+                        # updated_img = actual_image
                         updated_img = base64.b64encode(image_bytes).decode('utf-8')
                     cursor.execute(f'''
                     UPDATE platos 
@@ -324,33 +319,39 @@ class StreamlitMealsProcess:
 
 
     def search_meal_engine_cards(self):
-        search_term = st.text_input('Buscar Plato')
+        search_term = st.text_input('Buscar Plato', value='', placeholder='buscar plato')
         df_table = self.meals_data()
         fotos_platos = pd.read_sql('SELECT id, foto_plato FROM platos', cursor)
-        m1 = df_table["NOMBRE PLATO"].str.lower().str.contains(search_term.lower())
-        m2 = df_table["CATEGORIA"].str.lower().str.contains(search_term.lower())
-        df_search = df_table[m1 | m2]
-        N_cards_per_row = 3
+
         if search_term:
-            for n_row, row in df_search.reset_index().iterrows():
-                i = n_row%N_cards_per_row
-                if i==0:
-                    st.write("---")
-                    cols = st.columns(N_cards_per_row, gap="large")
-                    # draw the card
-                with cols[n_row%N_cards_per_row]:
-                    st.caption(f"{row['NOMBRE PLATO'].strip()} - {row['CATEGORIA'].strip()} - {row['FECHA'].strftime('%Y-%m-%d')}")
-                    col1, col2 = st.columns([1, 2])
-                with col1:
-                    st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
-                    st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")
-                    btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
-                    if btn:
-                        st.markdown('Diseñar Presentación')
-                with col2:
-                    st.markdown(f"**ID:** {row['ID']}")
-                    selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]
-                    st.image(self.get_image(selected_foto_plato), caption=row['NOMBRE PLATO'], use_column_width=True)
+            m1 = df_table["NOMBRE PLATO"].str.lower().str.contains(search_term.lower())
+            m2 = df_table["CATEGORIA"].str.lower().str.contains(search_term.lower())
+            m3 = df_table['ID'].astype(str).str.contains(search_term)
+            df_search = df_table[m1 | m2 | m3]
+        else:
+            df_search = df_table  # Display all "platos" when no search term
+        
+        N_cards_per_row = 3
+
+        for n_row, row in df_search.reset_index().iterrows():
+            i = n_row % N_cards_per_row
+            if i == 0:
+                st.write("---")
+                cols = st.columns(N_cards_per_row, gap="large")
+            with cols[n_row % N_cards_per_row]:
+                st.caption(f"{row['NOMBRE PLATO'].strip()} - {row['CATEGORIA'].strip()} - {row['FECHA'].strftime('%Y-%m-%d')}")
+                col1, col2 = st.columns([1, 2])
+            with col1:
+                st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
+                st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")
+                btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
+                if btn:
+                    st.markdown('Diseñar Presentación')
+            with col2:
+                st.markdown(f"**ID:** {row['ID']}")
+                selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]
+                st.image(self.get_image(selected_foto_plato), caption=row['NOMBRE PLATO'], use_column_width=True)
+
 
 
 
