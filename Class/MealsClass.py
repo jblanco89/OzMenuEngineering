@@ -3,6 +3,8 @@ import pandas as pd
 import streamlit as st
 import time
 import datetime
+import queries
+from Utilities.modal import modal
 from Class.ConnectionDB import ConnectionDB
 from Class.StockClass import StreamlitStockProcess
 from st_aggrid import GridOptionsBuilder 
@@ -10,10 +12,10 @@ from st_aggrid import AgGrid
 from st_aggrid import GridUpdateMode
 from st_aggrid import ColumnsAutoSizeMode
 from st_aggrid import AgGridTheme
+import streamlit.components.v1 as components
 from bitstring import BitArray
 from pandas_profiling import ProfileReport
 from io import BytesIO
-
 
 con = ConnectionDB('DB/engineMenu_v43.db')
 cursor = con.cursor()
@@ -71,6 +73,28 @@ class StreamlitMealsProcess:
 
         return expander_data
     
+    def get_expander_allergen(self, id):
+        expander_allergen_data = pd.read_sql(f'''
+            SELECT 
+            gluten_alg,
+            crustaceo_alg,
+            huevo_alg,
+            pescado_alg,
+            cacahuetes_alg,
+            lacteos_alg,
+            apio_alg,
+            mostaza_alg,
+            sulfitos_alg,
+            sesamo_alg,
+            moluscos_alg,
+            soja_alg,
+            frutos_secos_alg,
+            altramuz_alg,
+            FROM PLATOS
+            WHERE id = '{id}' 
+        ''', cursor)
+    
+        return expander_allergen_data
 
     def add_meals_form(self):
         meals_data_frame = self.meals_data()
@@ -82,7 +106,6 @@ class StreamlitMealsProcess:
             add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
             add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)
             add_sale_price = st.number_input('PRECIO VENTA (€)', format='%.2f', value=0.0)
-            add_recipe_cost = st.number_input('COSTE RECETA (€)', format='%.2f', value=0.0)
             add_tax = st.number_input('IMPUESTO (%)', min_value=4.0, max_value=21.0, value = 10.0, step=1.0, format='%.2f')
             add_img = st.file_uploader('Imagen', type=['jpg', 'jepg'])
     
@@ -91,15 +114,74 @@ class StreamlitMealsProcess:
                 add_status_val = '1'
             else:
                 add_status_val = '0'
+
+            if 'data' not in st.session_state:
+                data = pd.DataFrame({'ID_PLATO':[],
+                                     'ID_INGREDIENTE':[],
+                                     'INGREDIENTE':[],
+                                     'PORCION (gr)':[],
+                                     'PRECIO': [],
+                                    #  'FACTOR MERMA': [],
+                                     'COSTE': []})
+                st.session_state.data = data
+
+            data = st.session_state.data
+
+            def add_ingredient():
+                nombre = st.session_state.input_name
+                porcion = st.session_state.input_portion
+
+                temp_table = f"SELECT id, precio_compra FROM inventario WHERE nombre = '{nombre}'"
+                temp_df = pd.read_sql(temp_table, cursor)
+                id_ingrediente = temp_df['id'].values[0]
+                precio = temp_df['precio_compra'].values[0]
+                coste = (porcion / 1000 ) * precio
+                row = pd.DataFrame({'ID_PLATO':[add_id],
+                        'ID_INGREDIENTE':[id_ingrediente],
+                        'INGREDIENTE':[nombre],
+                        'PORCION (gr)':[porcion],
+                        'PRECIO':[precio],
+                        # 'FACTOR MERMA': [factor_merma],
+                        'COSTE':[coste]})
+                st.session_state.data = pd.concat([st.session_state.data, row])  
+
+            ex = st.expander('Agregar Ingredientes')
+            if ex:
+                ex.dataframe(data, hide_index=True)
+                ingredient_query = 'SELECT DISTINCT nombre FROM inventario'
+                ingredient_values = pd.read_sql(ingredient_query, cursor)
+                ing1, ing2 = ex.columns([1,1])
+                with ing1:
+                    st.selectbox('INGREDIENTE', ingredient_values, key='input_name')
+                with ing2:
+                    st.number_input('PORCION (gr)', format='%f', key='input_portion')
+                ex.form_submit_button('Agregar', type='primary', on_click=add_ingredient)
             
-            main_btn1, main_btn2 = st.columns((1,7))
+            st.subheader('Alérgenos')
+            ex_alrg = st.expander('Alérgenos')
+            data_allergen = self.get_expander_allergen(add_id)
+            column_names_allergen = data_allergen.columns.tolist()
+            column_names_allergen = [item.replace("_alg", "").upper() for item in column_names_allergen]
+            num_columns_allergen = 3
+            groups = [column_names_allergen[i:i + num_columns_allergen] for i in range(0, len(column_names_allergen), num_columns_allergen)]
+            if ex_alrg:
+                checkbox_states = {col: False for col in column_names_allergen}
+                for group in groups:
+                    cols = st.columns(num_columns_allergen)
+                    for i, col in enumerate(group):
+                        checkbox_states[col] = cols[i].checkbox(col, key=col)
+
+            
+            main_btn1, main_btn2 = st.columns((1,1))
             with main_btn1:
                 add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
                 if add_button:
                     add_tax = (add_tax / 100)
                     add_status_bin = BitArray(bin=add_status_val).bin
-                    add_recipe_cost = float(add_recipe_cost)
                     add_portion = float(add_portion)
+                    add_ingredients_data = pd.DataFrame(data)
+                    add_recipe_cost = add_ingredients_data['COSTE'].sum()
+                    add_meals_ingredients_tuple = [tuple(row) for row in add_ingredients_data[['ID_PLATO', 'ID_INGREDIENTE', 'PORCION (gr)']].values]
                     if add_img is not None:
                         add_img_contents = add_img.read()
                         st.image(add_img_contents, caption=f'{add_name}')
@@ -133,17 +215,25 @@ class StreamlitMealsProcess:
                     '{add_status_bin}'
                     );
                     ''')
-                    # cursor.executemany(f'''
-                    # INSERT INTO plato_ingredientes
-                    # (id_plato,
-                    # id_inventario) 
-                    # VALUES (?,?); 
-                    # ''', add_meals_ingredients_tuple)
+                    cursor.executemany(f'''
+                    INSERT INTO plato_ingredientes
+                    (id_plato,
+                    id_inventario,
+                    porcion_ing_grs) 
+                    VALUES (?,?,?); 
+                    ''', add_meals_ingredients_tuple)
                     
                     cursor.commit()
                     # display a success message
                     st.success('Nuevo plato agregado')
                     time.sleep(2)
+                    st.session_state.data = pd.DataFrame({'ID_PLATO':[],
+                                     'ID_INGREDIENTE':[],
+                                     'INGREDIENTE':[],
+                                     'PORCION (gr)':[],
+                                     'PRECIO': [],
+                                    #  'FACTOR MERMA': [],
+                                     'COSTE': []})
                     st.experimental_rerun()
             with main_btn2:
                 exit_buttom = st.form_submit_button('Cancelar', type='secondary')
@@ -156,7 +246,8 @@ class StreamlitMealsProcess:
                          meals_portion, 
                          meals_sale_price, 
                          meals_recipe_cost,
-                        expander_data, 
+                        expander_data,
+                        expander_allergen, 
                      cursor):
         with st.form(key='update_form', clear_on_submit=True):
             st.subheader('Editar Plato')
@@ -178,6 +269,26 @@ class StreamlitMealsProcess:
             updated_zone = st.text_input('ZONA', value=meals_zone)
             updated_num_portions = st.number_input('Nº PORCIONES', value=float(expander_data['numero_porciones'].values[0]),
                                                 format='%f')
+            st.subheader('Ingredientes del Plato')
+            cross_query = queries.cross_platos_ingredientes
+            plato_ing_data = pd.read_sql(cross_query, cursor, params=(meals_id,))
+            plato_ing_data_df = plato_ing_data[['nombre', 'precio_compra', 'porcion_ing_grs']]
+            updated_ingredients = st.dataframe(plato_ing_data_df, hide_index=True, width=600)
+
+            st.subheader('Alérgenos')
+            ex_alrg = st.expander('Alérgenos')
+            data_allergen = expander_allergen
+            column_names_allergen = data_allergen.columns.tolist()
+            column_names_allergen = [item.replace("_alg", "").upper() for item in column_names_allergen]
+            num_columns_allergen = 3
+            groups = [column_names_allergen[i:i + num_columns_allergen] for i in range(0, len(column_names_allergen), num_columns_allergen)]
+            if ex_alrg:
+                checkbox_states = {col: False for col in column_names_allergen}
+                for group in groups:
+                    cols = st.columns(num_columns_allergen)
+                    for i, col in enumerate(group):
+                        checkbox_states[col] = cols[i].checkbox(col, key=col)
+
             uptdated_prep_mins = st.number_input('TIEMPO PREPARACIÓN (mins)', value=expander_data['tiempo_prep_mins'].values[0])
             uptdated_cook_mins = st.number_input('TIEMPO COCCIÓN (mins)', value=expander_data['tiempo_coccion_mins'].values[0])
             uptdated_temp_serv = st.number_input('TEMPERATURA SERVICIO (ºC)',
@@ -198,6 +309,8 @@ class StreamlitMealsProcess:
                                         height=8,
                                         placeholder='Menciona el equipo necesario para elaboración (400 caracteres)')
 
+            
+            
             img_data = expander_data['foto_plato'].values[0]
             image_bytes = base64.b64decode(img_data)
             actual_image = self.get_image(img_data=img_data)
@@ -297,6 +410,7 @@ class StreamlitMealsProcess:
             meals_sale_price = round(row_values[6],2)
             meals_recipe_cost = round(row_values[7],2)
             expander_data = self.get_expander_data(id=meals_id)
+            expander_allergen = self.get_expander_allergen(id=meals_id)
 
             self.update_meal_form(meals_id, 
                          meals_category, 
@@ -304,7 +418,9 @@ class StreamlitMealsProcess:
                          meals_portion, 
                          meals_sale_price, 
                          meals_recipe_cost,
-                         expander_data=expander_data, cursor=cursor)            
+                         expander_data=expander_data,
+                         expander_allergen=expander_allergen, 
+                         cursor=cursor)            
     
     def search_meal_engine_table(self):
         search_term = st.text_input('Buscar')
@@ -345,8 +461,13 @@ class StreamlitMealsProcess:
                 st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
                 st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")
                 btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
+                # JavaScript code to open a new tab with Markdown content
                 if btn:
-                    st.markdown('Diseñar Presentación')
+                    with open('Markdowns/MealsDisplay.html', 'r', encoding='utf-8') as markdown_file:
+                        markdown_content = markdown_file.read()
+                        st.markdown(markdown_content)
+                              
+                
             with col2:
                 st.markdown(f"**ID:** {row['ID']}")
                 selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]

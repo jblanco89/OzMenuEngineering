@@ -61,6 +61,7 @@ create_meal_ingredient_table = '''
     CREATE TABLE IF NOT EXISTS plato_ingredientes (
         id_plato INTEGER,
         id_inventario INTEGER,
+        porcion_ing_grs FLOAT DEFAULT 0.0,
         PRIMARY KEY (id_plato, id_inventario),
         FOREIGN KEY (id_plato) REFERENCES platos (id) ON DELETE CASCADE,
         FOREIGN KEY (id_inventario) REFERENCES inventario (id) ON DELETE CASCADE
@@ -218,20 +219,22 @@ insert_menu_engine_value = '''
 
 cross_platos_ingredientes = '''
     SELECT DISTINCT 
-    p.id, 
     p.nombre_plato, 
     p.precio_venta, 
-    p.precio_neto, 
+    p.porcion_grs, 
     p.costo_receta, 
-    p.beneficio, 
-    i.nombre AS ingredientes, 
-    i.precio_compra 
-    FROM platos AS p 
-    LEFT JOIN plato_ingredientes AS pli 
+    i.nombre, 
+    i.precio_compra, 
+    pli.porcion_ing_grs, 
+    p.beneficio 
+    FROM platos as p 
+    LEFT JOIN plato_ingredientes as pli 
     ON p.id = pli.id_plato 
-    LEFT JOIN inventario AS i 
+    LEFT JOIN inventario as i 
     ON pli.id_inventario = i.id 
-    ORDER BY p.id ASC;
+    WHERE p.id = ? 
+    ORDER BY 
+    pli.porcion_ing_grs DESC;
 '''
 
 correct_inventario_data = '''
