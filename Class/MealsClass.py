@@ -4,7 +4,6 @@ import streamlit as st
 import time
 import datetime
 import queries
-from Utilities.modal import modal
 from Class.ConnectionDB import ConnectionDB
 from Class.StockClass import StreamlitStockProcess
 from st_aggrid import GridOptionsBuilder 
