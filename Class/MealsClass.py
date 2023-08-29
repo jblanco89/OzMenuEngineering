@@ -434,7 +434,8 @@ class StreamlitMealsProcess:
 
 
     def search_meal_engine_cards(self):
-        search_term = st.text_input('Buscar Plato', value='', placeholder='buscar plato')
+        search_term = st.text_input('Buscar Plato', value='', placeholder='Buscar por nombre | categoría | ID')
+        num_rows = st.selectbox('Layout Platos', options=(1,2,3,4), index=1)
         df_table = self.meals_data()
         fotos_platos = pd.read_sql('SELECT id, foto_plato FROM platos', cursor)
 
@@ -446,7 +447,7 @@ class StreamlitMealsProcess:
         else:
             df_search = df_table  # Display all "platos" when no search term
         
-        N_cards_per_row = 3
+        N_cards_per_row = num_rows
 
         for n_row, row in df_search.reset_index().iterrows():
             i = n_row % N_cards_per_row
@@ -456,21 +457,18 @@ class StreamlitMealsProcess:
             with cols[n_row % N_cards_per_row]:
                 st.caption(f"{row['NOMBRE PLATO'].strip()} - {row['CATEGORIA'].strip()} - {row['FECHA'].strftime('%Y-%m-%d')}")
                 col1, col2 = st.columns([1, 2])
-            with col1:
-                st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
-                st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")
-                btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
-                # JavaScript code to open a new tab with Markdown content
+                with col1:
+                    st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
+                    st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")  
+                    btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
                 if btn:
-                    with open('Markdowns/MealsDisplay.html', 'r', encoding='utf-8') as markdown_file:
+                    with open('Markdowns/MealsDisplay.md', 'r', encoding='utf-8') as markdown_file:
                         markdown_content = markdown_file.read()
-                        st.markdown(markdown_content)
-                              
-                
-            with col2:
-                st.markdown(f"**ID:** {row['ID']}")
-                selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]
-                st.image(self.get_image(selected_foto_plato), caption=row['NOMBRE PLATO'], use_column_width=True)
+                        st.markdown(markdown_content, unsafe_allow_html=True)  
+                with col2:
+                    st.markdown(f"**ID:** {row['ID']}")
+                    selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]
+                    st.image(self.get_image(selected_foto_plato), caption=row['NOMBRE PLATO'], use_column_width=True)
 
 
 

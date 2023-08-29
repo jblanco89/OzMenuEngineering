@@ -61,11 +61,9 @@ cursor.execute(query=queries.insert_ingredient_meal_data)
 cursor.execute(query=queries.insert_menu_engine_value)
 
 
-
-
 def main():    
     # Create a menu with submenus
-    menu = ['Home', 'Inventario', 'Platos', 'Analisis', 'Ventas', 'About']
+    menu = ['Home', 'Inventario', 'Platos', 'Análisis', 'Ventas', 'About']
     # submenu_products = ['Mostrar', 'Agregar', 'Eliminar']
     
     st.sidebar.title('MENU DE NAVEGACIÓN',)
@@ -98,7 +96,8 @@ def main():
         with adding:
             meals.add_meals_form()
 
-    elif selection_menu == 'Analisis':
+    elif selection_menu == 'Análisis':
+        st.subheader("Ingeniería de Menú")
         menu_engine.date_slider()
             
 

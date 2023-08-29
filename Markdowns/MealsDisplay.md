@@ -45,9 +45,4 @@
 - 🌰 **Frutos Secos:** {{ Frutos Secos }}
 - 🌱 **Altramuz:** {{ Altramuz }}
 
-## Photo
-{{ Imagen del Plato | image }}
-
-## Availability
-- 🌟 **Plato Activo:** {{ Plato Activo }}
 
