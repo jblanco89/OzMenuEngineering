@@ -83,3 +83,7 @@ CREATE TABLE IF NOT EXISTS ventas_productos (
         PRIMARY KEY (id_plato),
         FOREIGN KEY (id_plato) REFERENCES platos (id)
     );
+
+
+
+

@@ -99,6 +99,19 @@ def main():
     elif selection_menu == 'Análisis':
         st.subheader("Ingeniería de Menú")
         menu_engine.date_slider()
+        engine_tab1, engine_tab2, engine_tab3, engine_tab4 = st.tabs(['DASHBOARD', 
+                                                                      'INGENIERÍA', 
+                                                                      'FIJACIÓN DE PRECIOS', 
+                                                                      'EXPLICACIÓN'])
+        with engine_tab1:
+            st.write('construcción')
+        with engine_tab2:
+            menu_engine.engine_table()
+        with engine_tab3:
+            st.write('construcción')
+        with engine_tab4:
+            menu_engine.engine_explanation()
+    
             
 
 

@@ -31,12 +31,53 @@ class MenuEngineeringClass:
                 )
             btn = st.form_submit_button('Filtrar')
             if btn and (st.session_state.selected_min != MIN_MAX_RANGE[0] or st.session_state.selected_max != MIN_MAX_RANGE[1]):
-                st.write('Rango de fechas elegido es de:', st.session_state.selected_min.date(), 'hasta', st.session_state.selected_max.date())
+                # st.write('Rango de fechas elegido es de:', st.session_state.selected_min.date(), 'hasta', st.session_state.selected_max.date())
                 return st.session_state.selected_min.date(), st.session_state.selected_max.date()
             
 
-    def filter_table(self, start_date, end_date):
-        return True
+    def filter_dates(self, start_date, end_date):
+        return start_date, end_date
     
-    def analysis_table(self):
+    def calculate_percentage(self, value, total_sum):
+        try:
+            return (value / total_sum) * 100
+        except ZeroDivisionError:
+            return ''
+         
+    def engine_table(self):
+        start_date = st.session_state.selected_min.date()
+        end_date = st.session_state.selected_max.date()
+        #metrics stimation
+        with open('sql/engine_table.sql', 'r') as sql_file:
+            sql_query = sql_file.read()
+
+        engine_df = pd.read_sql(sql_query, cursor, params=(start_date, end_date,))
+        cost_avg_value = (engine_df['total_coste_producto'].sum() / engine_df['total_venta_producto'].sum()) * 100
+        sold_units_total = engine_df['unidades_vendidas'].sum()
+        engine_df['indice_popularidad'] = engine_df.apply(lambda row: self.calculate_percentage(row['unidades_vendidas'], sold_units_total) if row['nombre_plato'] != '' else '', axis=1)
+        pop_avg_index_value = 70 / engine_df['indice_popularidad'].count()
+        roi_avg_value = (engine_df['precio_venta'].sum() / engine_df['costo_receta'].sum()) * 100
+        cost_avg, pop_avg_index, roi_avg = st.columns([2,2,2])
+        with cost_avg:
+            st.metric('Coste Medio', value=round(cost_avg_value,2))
+        with pop_avg_index:
+            st.metric('Índice de Pop. Medio', value=round(pop_avg_index_value,2))
+        with roi_avg:
+            st.metric('Rentabilidad Media', value=round(roi_avg_value,2))
+
+        st.dataframe(engine_df, hide_index=True,use_container_width=True)
+
+    def engine_explanation(self):
+        with open('Markdowns/EngineExplanation.md', 'r') as EngineExplanation:
+            EngineExplanation = EngineExplanation.read()
+        
+        st.markdown(EngineExplanation)
+        
+
+    def price_fixing(self):
+        
         return True
+        
+
+        
+        

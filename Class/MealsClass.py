@@ -97,9 +97,10 @@ class StreamlitMealsProcess:
 
     def add_meals_form(self):
         meals_data_frame = self.meals_data()
+        id_value = meals_data_frame['ID'].iloc[-1] + 1
         with st.form(key='add_meals_form', clear_on_submit=False):
             st.write('Nuevo Plato')
-            add_id = st.number_input('ID', min_value=0 ,value=meals_data_frame['ID'].iloc[-1] + 1, format='%d')
+            add_id = st.number_input('ID', min_value=0, value=id_value,format='%d')
             add_name = st.text_input('NOMBRE', value="")
             add_category = st.text_input('CATEGORÍA', value="")
             add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
