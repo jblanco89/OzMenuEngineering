@@ -108,7 +108,7 @@ def main():
         with engine_tab2:
             menu_engine.engine_table()
         with engine_tab3:
-            st.write('construcción')
+            menu_engine.price_fixing()
         with engine_tab4:
             menu_engine.engine_explanation()
     
