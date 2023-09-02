@@ -38,25 +38,19 @@ create_meals_table = '''
         elaboracion VARCHAR(1200) NOT NULL DEFAULT '',
         presentacion VARCHAR(500) NOT NULL DEFAULT '',
         equipo_elaboracion VARCHAR(500) NOT NULL DEFAULT '',
-        gluten_alg BITSTRING,
-        crustaceo_alg BITSTRING,
-        huevo_alg BITSTRING,
-        pescado_alg BITSTRING,
-        cacahuetes_alg BITSTRING,
-        lacteos_alg BITSTRING,
-        apio_alg BITSTRING,
-        mostaza_alg BITSTRING,
-        sulfitos_alg BITSTRING,
-        sesamo_alg BITSTRING,
-        moluscos_alg BITSTRING,
-        soja_alg BITSTRING,
-        frutos_secos_alg BITSTRING,
-        altramuz_alg BITSTRING,
         foto_plato BLOB DEFAULT NULL,
         plato_activo BITSTRING
         );
     '''
-# FOREIGN KEY (id_ingrediente) REFERENCES ingredientes (id)
+
+create_allergen_table = ''' CREATE TABLE IF NOT EXISTS alergenos (
+        id_plato INTEGER,
+        alergeno TEXT PRIMARY KEY,
+        presencia BOOLEAN,
+        FOREIGN KEY (id_plato) REFERENCES platos (id) ON DELETE CASCADE 
+    );
+    '''
+
 create_meal_ingredient_table = '''
     CREATE TABLE IF NOT EXISTS plato_ingredientes (
         id_plato INTEGER,

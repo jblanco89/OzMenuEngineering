@@ -33,8 +33,8 @@ class StreamlitSalesMealsClass:
 
     def display_data(self):
             # Create a file uploader
-        st.subheader("Meal Sales")
-        uploaded_file = st.file_uploader("Upload Sales File", type=["xlsx", "xls"])
+        st.subheader("Ventas de Platos")
+        uploaded_file = st.file_uploader("Cargar archivo de ventas", type=["xlsx", "xls"])
         if uploaded_file is not None:
             file_path = f"Uploads/{uploaded_file.name}"
             with open(file_path, "wb") as f:

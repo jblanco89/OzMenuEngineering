@@ -74,28 +74,25 @@ class StreamlitMealsProcess:
     
     def get_expander_allergen(self, id):
         expander_allergen_data = pd.read_sql(f'''
-            SELECT 
-            gluten_alg,
-            crustaceo_alg,
-            huevo_alg,
-            pescado_alg,
-            cacahuetes_alg,
-            lacteos_alg,
-            apio_alg,
-            mostaza_alg,
-            sulfitos_alg,
-            sesamo_alg,
-            moluscos_alg,
-            soja_alg,
-            frutos_secos_alg,
-            altramuz_alg,
-            FROM PLATOS
-            WHERE id = '{id}' 
+            SELECT
+               * 
+            FROM alergenos
+            WHERE id_plato = '{id}' 
         ''', cursor)
     
         return expander_allergen_data
+    
+    def upload_meal_file(self):
+        file_upload = st.expander('Subida de archivo')
+        st.subheader('Añadir platos')
+        st.markdown("*Añadir lista platos desde archivo Excel*")
+        st.markdown('El archivo debe contener como mínimo dos columnas:`ID del plato` y `Nombre del plato`')
+        with file_upload:
+            st.file_uploader('Subir lista de platos', type=["xlsx", "xls"])
 
     def add_meals_form(self):
+        checkbox_states = {}
+        st.subheader('Formulario para añadir plato')
         meals_data_frame = self.meals_data()
         id_value = meals_data_frame['ID'].iloc[-1] + 1
         with st.form(key='add_meals_form', clear_on_submit=False):
@@ -146,8 +143,14 @@ class StreamlitMealsProcess:
                 st.session_state.data = pd.concat([st.session_state.data, row])  
 
             ex = st.expander('Agregar Ingredientes')
+            df_ex_2 = st.data_editor(data, 
+                                disabled=("ID_PLATO", "ID_INGREDIENTE", "INGREDIENTE", "PORCION (gr)", "PRECIO", "COSTE"), 
+                                hide_index=True,
+                                use_container_width=True,
+                                num_rows='dynamic')
             if ex:
-                ex.dataframe(data, hide_index=True)
+                df_ex_2
+                # ex.dataframe(data, hide_index=True)
                 ingredient_query = 'SELECT DISTINCT nombre FROM inventario'
                 ingredient_values = pd.read_sql(ingredient_query, cursor)
                 ing1, ing2 = ex.columns([1,1])
@@ -156,22 +159,32 @@ class StreamlitMealsProcess:
                 with ing2:
                     st.number_input('PORCION (gr)', format='%f', key='input_portion')
                 ex.form_submit_button('Agregar', type='primary', on_click=add_ingredient)
-            
-            st.subheader('Alérgenos')
-            ex_alrg = st.expander('Alérgenos')
-            data_allergen = self.get_expander_allergen(add_id)
-            column_names_allergen = data_allergen.columns.tolist()
-            column_names_allergen = [item.replace("_alg", "").upper() for item in column_names_allergen]
-            num_columns_allergen = 3
-            groups = [column_names_allergen[i:i + num_columns_allergen] for i in range(0, len(column_names_allergen), num_columns_allergen)]
-            if ex_alrg:
-                checkbox_states = {col: False for col in column_names_allergen}
-                for group in groups:
-                    cols = st.columns(num_columns_allergen)
-                    for i, col in enumerate(group):
-                        checkbox_states[col] = cols[i].checkbox(col, key=col)
 
-            
+            st.subheader('Alérgenos')
+            with st.expander('Alérgenos'):
+                data_allergen = self.get_expander_allergen(add_id)
+                column_names_allergen = data_allergen.columns.tolist()
+                column_names_allergen = [item.replace("_alg", "").upper() for item in column_names_allergen]
+                allergen_df = pd.DataFrame({
+                                "Alérgeno": column_names_allergen,
+                                "Presencia": [False for _ in range(len(column_names_allergen))],
+                            }
+                                )
+                new_allergen_df = st.data_editor(allergen_df, column_config={
+                                                    "Presencia": st.column_config.CheckboxColumn(
+                                                        "¿Hay Alérgeno?",
+                                                        help="Selecciona el **Alérgeno**",
+                                                        default=False,
+                                                        width="small",
+                                                    )
+                                                },
+                                                disabled=["Alérgeno"],
+                                                hide_index=True,
+                                                use_container_width=True) 
+
+
+
+
             main_btn1, main_btn2 = st.columns((1,1))
             with main_btn1:
                 add_button = st.form_submit_button(label='Nuevo Plato', type='primary')
@@ -222,9 +235,18 @@ class StreamlitMealsProcess:
                     porcion_ing_grs) 
                     VALUES (?,?,?); 
                     ''', add_meals_ingredients_tuple)
-                    
+
+                    all_allergens = new_allergen_df[['Alérgeno', 'Presencia']].values.tolist()
+                    # st.write(all_allergens)
+                    # for allergen, presence in all_allergens:
+                    #     cursor.execute('INSERT INTO alergenos (id_plato, alergeno, presencia) VALUES (?, ?, ?)', (add_id, allergen, presence))
+                    allergen_to_insert = [(add_id, allergen, presence) for allergen, presence in all_allergens]
+                    cursor.executemany('''INSERT INTO alergenos 
+                                       (id_plato, 
+                                       alergeno, 
+                                       presencia) 
+                                       VALUES (?, ?, ?);''', allergen_to_insert)
                     cursor.commit()
-                    # display a success message
                     st.success('Nuevo plato agregado')
                     time.sleep(2)
                     st.session_state.data = pd.DataFrame({'ID_PLATO':[],
@@ -276,18 +298,22 @@ class StreamlitMealsProcess:
             updated_ingredients = st.dataframe(plato_ing_data_df, hide_index=True, width=600)
 
             st.subheader('Alérgenos')
-            ex_alrg = st.expander('Alérgenos')
-            data_allergen = expander_allergen
-            column_names_allergen = data_allergen.columns.tolist()
-            column_names_allergen = [item.replace("_alg", "").upper() for item in column_names_allergen]
-            num_columns_allergen = 3
-            groups = [column_names_allergen[i:i + num_columns_allergen] for i in range(0, len(column_names_allergen), num_columns_allergen)]
-            if ex_alrg:
-                checkbox_states = {col: False for col in column_names_allergen}
-                for group in groups:
-                    cols = st.columns(num_columns_allergen)
-                    for i, col in enumerate(group):
-                        checkbox_states[col] = cols[i].checkbox(col, key=col)
+            # ex_alrg = st.expander('Alérgenos')
+            data_allergen = self.get_expander_allergen(id=meals_id)
+            data_allergen_df = pd.DataFrame(data_allergen)
+            data_allergen_df.rename(columns={'id_plato': 'ID PLATO', 'alergeno': 'Alérgeno', 'presencia': 'Presencia'}, inplace=True)
+            updated_data_allergen = st.data_editor(data_allergen_df, column_config={
+                                                    "Presencia": st.column_config.CheckboxColumn(
+                                                        "¿Hay Alérgeno?",
+                                                        help="Selecciona el **Alérgeno**",
+                                                        default=False,
+                                                        width="small",
+                                                    )
+                                                },
+                                                disabled=["Alérgeno"],
+                                                hide_index=True,
+                                                use_container_width=True) 
+            
 
             uptdated_prep_mins = st.number_input('TIEMPO PREPARACIÓN (mins)', value=expander_data['tiempo_prep_mins'].values[0])
             uptdated_cook_mins = st.number_input('TIEMPO COCCIÓN (mins)', value=expander_data['tiempo_coccion_mins'].values[0])
@@ -351,6 +377,18 @@ class StreamlitMealsProcess:
                     foto_plato = '{updated_img}'
                     WHERE id = '{meals_id}'
                     ''')
+
+                    updated_all_allergen_list = updated_data_allergen[['Alérgeno', 'Presencia']].values.tolist()
+                    # st.write(all_allergens)
+                    # for allergen, presence in all_allergens:
+                    #     cursor.execute('INSERT INTO alergenos (id_plato, alergeno, presencia) VALUES (?, ?, ?)', (add_id, allergen, presence))
+                    updated_all_allergen_to_insert = [(meals_id, allergen, presence) for allergen, presence in updated_all_allergen_list]
+                    cursor.execute('''UPDATE alergenos
+                                       SET 
+                                       id_plato = ?, 
+                                       alergeno = ?, 
+                                       presencia = ? 
+                                       ;''', updated_all_allergen_to_insert)
                     cursor.commit()
 
                     # display a success message
