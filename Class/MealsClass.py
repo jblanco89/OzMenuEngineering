@@ -72,13 +72,22 @@ class StreamlitMealsProcess:
 
         return expander_data
     
-    def get_expander_allergen(self, id):
-        expander_allergen_data = pd.read_sql(f'''
-            SELECT
-               * 
-            FROM alergenos
-            WHERE id_plato = '{id}' 
-        ''', cursor)
+    def get_expander_allergen(self):
+        expander_allergen_data = ['Gluten 🚫', 
+                                  'Crustáceos 🦞',
+                                  'Huevo 🥚',
+                                  'Pescado 🐟',
+                                  'Cacahuetes 🥜',
+                                  'Lacteos 🥛',
+                                  'Apio 🥬',
+                                  'Mostaza 🌿',
+                                  'Sulfitos 🧪',
+                                  'Sésamo 🍞',
+                                  'Moluscos 🐚',
+                                  'Soja 🥟',
+                                  'Frtos secos 🌰',
+                                  'Altramuz 🌱']
+        expander_allergen_data = [item.upper() for item in expander_allergen_data]
     
         return expander_allergen_data
     
@@ -162,12 +171,10 @@ class StreamlitMealsProcess:
 
             st.subheader('Alérgenos')
             with st.expander('Alérgenos'):
-                data_allergen = self.get_expander_allergen(add_id)
-                column_names_allergen = data_allergen.columns.tolist()
-                column_names_allergen = [item.replace("_alg", "").upper() for item in column_names_allergen]
+                data_allergen = self.get_expander_allergen()
                 allergen_df = pd.DataFrame({
-                                "Alérgeno": column_names_allergen,
-                                "Presencia": [False for _ in range(len(column_names_allergen))],
+                                "Alérgeno": data_allergen,
+                                "Presencia": [False for _ in range(len(data_allergen))],
                             }
                                 )
                 new_allergen_df = st.data_editor(allergen_df, column_config={
@@ -237,9 +244,6 @@ class StreamlitMealsProcess:
                     ''', add_meals_ingredients_tuple)
 
                     all_allergens = new_allergen_df[['Alérgeno', 'Presencia']].values.tolist()
-                    # st.write(all_allergens)
-                    # for allergen, presence in all_allergens:
-                    #     cursor.execute('INSERT INTO alergenos (id_plato, alergeno, presencia) VALUES (?, ?, ?)', (add_id, allergen, presence))
                     allergen_to_insert = [(add_id, allergen, presence) for allergen, presence in all_allergens]
                     cursor.executemany('''INSERT INTO alergenos 
                                        (id_plato, 
@@ -269,7 +273,6 @@ class StreamlitMealsProcess:
                          meals_sale_price, 
                          meals_recipe_cost,
                         expander_data,
-                        expander_allergen, 
                      cursor):
         with st.form(key='update_form', clear_on_submit=True):
             st.subheader('Editar Plato')
@@ -295,13 +298,19 @@ class StreamlitMealsProcess:
             cross_query = queries.cross_platos_ingredientes
             plato_ing_data = pd.read_sql(cross_query, cursor, params=(meals_id,))
             plato_ing_data_df = plato_ing_data[['nombre', 'precio_compra', 'porcion_ing_grs']]
-            updated_ingredients = st.dataframe(plato_ing_data_df, hide_index=True, width=600)
+            plato_ing_data_df = plato_ing_data_df.rename(columns={'nombre':'INGREDIENTE', 'precio_compra':'PRECIO €', 'porcion_ing_grs':'PORCION (grs)'})
+            updated_ingredients = st.data_editor(plato_ing_data_df, 
+                                                 hide_index=True, 
+                                                 use_container_width=True,
+                                                 disabled=('INGREDIENTE','PRECIO €'),
+                                                 num_rows='dynamic'
+                                                 )
 
             st.subheader('Alérgenos')
             # ex_alrg = st.expander('Alérgenos')
-            data_allergen = self.get_expander_allergen(id=meals_id)
+            data_allergen = pd.read_sql(f'SELECT alergeno, presencia FROM alergenos WHERE id_plato = {meals_id}', cursor)
             data_allergen_df = pd.DataFrame(data_allergen)
-            data_allergen_df.rename(columns={'id_plato': 'ID PLATO', 'alergeno': 'Alérgeno', 'presencia': 'Presencia'}, inplace=True)
+            data_allergen_df.rename(columns={'alergeno': 'Alérgeno', 'presencia': 'Presencia'}, inplace=True)
             updated_data_allergen = st.data_editor(data_allergen_df, column_config={
                                                     "Presencia": st.column_config.CheckboxColumn(
                                                         "¿Hay Alérgeno?",
@@ -379,16 +388,16 @@ class StreamlitMealsProcess:
                     ''')
 
                     updated_all_allergen_list = updated_data_allergen[['Alérgeno', 'Presencia']].values.tolist()
-                    # st.write(all_allergens)
-                    # for allergen, presence in all_allergens:
-                    #     cursor.execute('INSERT INTO alergenos (id_plato, alergeno, presencia) VALUES (?, ?, ?)', (add_id, allergen, presence))
-                    updated_all_allergen_to_insert = [(meals_id, allergen, presence) for allergen, presence in updated_all_allergen_list]
-                    cursor.execute('''UPDATE alergenos
-                                       SET 
-                                       id_plato = ?, 
-                                       alergeno = ?, 
-                                       presencia = ? 
-                                       ;''', updated_all_allergen_to_insert)
+                    updated_all_allergen_to_insert = [(presence, allergen, meals_id) for allergen, presence in updated_all_allergen_list]
+                    update_allergen_query = ('''UPDATE alergenos
+                                            SET
+                                                presencia = ?
+                                            WHERE
+                                                alergeno = ?
+                                            AND
+                                                id_plato = ?''')
+                    for presence, allergen, meal_id in updated_all_allergen_to_insert:
+                        cursor.execute(update_allergen_query, (presence, allergen, meal_id))
                     cursor.commit()
 
                     # display a success message
@@ -408,7 +417,7 @@ class StreamlitMealsProcess:
                 df = pd.read_sql(f'SELECT * FROM platos', cursor)
                 profile = ProfileReport(df, title='Profiling Report', explorative=True, dark_mode=True)
                 pr_html = profile.to_html()
-                st.components.v1.html(pr_html, width=800, height=800, scrolling=True)
+                st.components.v1.html(pr_html, width=800, scrolling=True)
         gob = GridOptionsBuilder.from_dataframe(meals_data_frame)
         gob.configure_grid_options(domLayout='normal', 
                                 enableSorting=True, 
@@ -419,7 +428,7 @@ class StreamlitMealsProcess:
                                 editable=True, 
                                 enableCellChangeFlash=True)
 
-        gob.configure_default_column(cellStyle={'font-size': '12px'}, 
+        gob.configure_default_column(cellStyle={'font-size': '13px'}, 
                                     suppressMenu=True, 
                                     wrapHeaderText=True, 
                                     autoHeaderHeight=True
@@ -428,7 +437,7 @@ class StreamlitMealsProcess:
         
         ag_grid = AgGrid(data = meals_data_frame,
         gridOptions=gob.build(),
-        height='500px',
+        height='600px',
         width='100%',
         fit_columns_on_grid_load = True, 
         updateMode=GridUpdateMode.VALUE_CHANGED,
@@ -448,7 +457,6 @@ class StreamlitMealsProcess:
             meals_sale_price = round(row_values[6],2)
             meals_recipe_cost = round(row_values[7],2)
             expander_data = self.get_expander_data(id=meals_id)
-            expander_allergen = self.get_expander_allergen(id=meals_id)
 
             self.update_meal_form(meals_id, 
                          meals_category, 
@@ -457,7 +465,6 @@ class StreamlitMealsProcess:
                          meals_sale_price, 
                          meals_recipe_cost,
                          expander_data=expander_data,
-                         expander_allergen=expander_allergen, 
                          cursor=cursor)            
     
     def search_meal_engine_table(self):
@@ -473,9 +480,27 @@ class StreamlitMealsProcess:
 
 
     def search_meal_engine_cards(self):
+        allergen_icons = {
+                'Gluten': '🚫',
+                'Crustáceos': '🦞',
+                'Huevo': '🥚',
+                'Pescado': '🐟',
+                'Cacahuetes': '🥜',
+                'Lacteos': '🥛',
+                'Apio': '🥬',
+                'Mostaza': '🌿',
+                'Sulfitos': '🧪',
+                'Sésamo': '🍞',
+                'Moluscos': '🐚',
+                'Soja': '🥟',
+                'Frutos secos': '🌰',
+                'Altramuz': '🌱'
+            }
+        allergen_names = self.get_expander_allergen()
         search_term = st.text_input('Buscar Plato', value='', placeholder='Buscar por nombre | categoría | ID')
         num_rows = st.selectbox('Layout Platos', options=(1,2,3,4), index=1)
         df_table = self.meals_data()
+        df_table = df_table[df_table['PLATO ACTIVO'] == '1']
         fotos_platos = pd.read_sql('SELECT id, foto_plato FROM platos', cursor)
 
         if search_term:
@@ -497,15 +522,18 @@ class StreamlitMealsProcess:
                 st.caption(f"{row['NOMBRE PLATO'].strip()} - {row['CATEGORIA'].strip()} - {row['FECHA'].strftime('%Y-%m-%d')}")
                 col1, col2 = st.columns([1, 2])
                 with col1:
+                    st.markdown(f"**ID:** {row['ID']}")
                     st.markdown(f"**Precio Venta:** {row['PRECIO VENTA']}")
-                    st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")  
+                    st.markdown(f"*Costo Receta:* {row['COSTO RECETA']}")
+                    allergens = pd.read_sql(f"SELECT alergeno FROM alergenos WHERE presencia = 'true' AND id_plato = {row['ID']}", cursor)
+                    allergens = allergens.values.tolist()
+                    st.markdown(f"*{allergens}*")  
                     btn = st.button('Ver Plato', key=f'{row["ID"]}', type='secondary')
                 if btn:
                     with open('Markdowns/MealsDisplay.md', 'r', encoding='utf-8') as markdown_file:
                         markdown_content = markdown_file.read()
                         st.markdown(markdown_content, unsafe_allow_html=True)  
                 with col2:
-                    st.markdown(f"**ID:** {row['ID']}")
                     selected_foto_plato = fotos_platos.loc[fotos_platos['id'] == row['ID'], 'foto_plato'].values[0]
                     st.image(self.get_image(selected_foto_plato), caption=row['NOMBRE PLATO'], use_column_width=True)
 
