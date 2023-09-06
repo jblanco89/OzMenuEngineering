@@ -1,5 +1,6 @@
 import pandas as pd 
 import streamlit as st
+import plotly.express as px
 import time
 import datetime
 from Class.ConnectionDB import ConnectionDB
@@ -73,7 +74,54 @@ class MenuEngineeringClass:
         with roi_avg:
             st.metric('Rentabilidad Media', value=round(roi_avg_value,2))
 
-        st.dataframe(engine_df, hide_index=True,use_container_width=True)
+        table_epx = st.expander('Tabla Ingenería de Menú')
+        with table_epx:
+            st.dataframe(engine_df, hide_index=True,use_container_width=True)
+
+        plot_exp = st.expander('Gráfico Matríz BCG')
+        with plot_exp:
+            st.subheader('MATRIZ BCG')
+            data_engine_plot = engine_df[['nombre_plato','unidades_vendidas','margen_contribucion','clasificación']]
+            colors = {'PERRO': 'red', 'VACA': 'blue', 'ESTRELLA': 'green', 'ENIGMA': 'yellow'}
+            fig = px.scatter(data_engine_plot, 
+                             x='unidades_vendidas', 
+                             y='margen_contribucion', 
+                             color='clasificación',
+                             title='Ingeniería del Menú - Matriz BCG', 
+                             text='nombre_plato', 
+                             color_discrete_map=colors,
+                            labels={'unidades_vendidas': 'UNIDADES VENDIDAS', 'margen_contribucion': 'MARGEN DE CONTRIBUCIÓN'}
+                            )
+            
+            fig.update_traces(textposition='top center',
+                  marker=dict(size=12, opacity=0.7),
+                  textfont=dict(size=12))
+            # Customize point labels and colors
+            # fig.update_traces(textposition='top center',
+            #                 marker=dict(size=12, opacity=0.7, line=dict(width=2, color='DarkSlateGrey')),
+            #                 textfont=dict(size=12),
+            #                 selector=dict(mode='markers+text'))
+
+            # # Update axis titles, font, and style
+            # fig.update_xaxes(title_font=dict(size=14, family='Arial', color='black'),
+            #                 showline=True, linewidth=2, linecolor='black')
+            # fig.update_yaxes(title_font=dict(size=14, family='Arial', color='black'),
+            #                 showline=True, linewidth=2, linecolor='black')
+
+            # # Update title font and style
+            # fig.update_layout(title_font=dict(size=18, family='Arial', color='black'),
+            #                 title_x=0.5, title_y=0.98,
+            #                 plot_bgcolor='white', paper_bgcolor='white',
+            #                 legend=dict(title='', font=dict(size=14, family='Arial')))
+
+            # Show the plot in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
+            
+
+
+
+
+
         return engine_df
 
     def engine_explanation(self):

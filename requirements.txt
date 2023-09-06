@@ -6,3 +6,4 @@ bitstring
 pandas-profiling
 ydata-profiling
 xlrd
+plotly==5.15.0
