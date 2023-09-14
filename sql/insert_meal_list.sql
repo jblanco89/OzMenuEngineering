@@ -1,0 +1,1 @@
+INSERT OR IGNORE INTO platos SELECT Codigo, NULL, NULL, Nombre, NULL, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '', '', '', NULL, '0' FROM read_csv_auto("C:\Users\javie\Documents\Jami\Jami-Project\Escandallo\MenuEngine\Uploads\unique_meal_list.csv", delim=",", header=True, ignore_errors=1); 

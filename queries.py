@@ -30,16 +30,16 @@ create_meals_table = '''
         tiempo_coccion_mins REAL NOT NULL DEFAULT 0.0,
         temp_serv_c REAL NOT NULL DEFAULT 0.0,
         precio_venta REAL NOT NULL DEFAULT 0.0,
-        impuesto REAL,
-        precio_neto REAL,
-        costo_receta FLOAT,
-        costo_receta_perc REAL,
-        beneficio REAL,
+        impuesto REAL NOT NULL DEFAULT 0.0,
+        precio_neto REAL NOT NULL DEFAULT 0.0,
+        costo_receta FLOAT NOT NULL DEFAULT 0.0,
+        costo_receta_perc REAL NOT NULL DEFAULT 0.0,
+        beneficio REAL NOT NULL DEFAULT 0.0,
         elaboracion VARCHAR(1200) NOT NULL DEFAULT '',
         presentacion VARCHAR(500) NOT NULL DEFAULT '',
         equipo_elaboracion VARCHAR(500) NOT NULL DEFAULT '',
         foto_plato BLOB DEFAULT NULL,
-        plato_activo BITSTRING
+        plato_activo BITSTRING NOT NULL DEFAULT 0
         );
     '''
 
@@ -216,7 +216,8 @@ cross_platos_ingredientes = '''
     p.nombre_plato, 
     p.precio_venta, 
     p.porcion_grs, 
-    p.costo_receta, 
+    p.costo_receta,
+    i.id, 
     i.nombre, 
     i.precio_compra, 
     pli.porcion_ing_grs, 

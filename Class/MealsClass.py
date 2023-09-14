@@ -289,28 +289,66 @@ class StreamlitMealsProcess:
             else:
                 updated_status_val = '0'
 
+            cross_query = queries.cross_platos_ingredientes
+            plato_ing_data = pd.read_sql(cross_query, cursor, params=(meals_id,))
+            plato_ing_data_df = plato_ing_data[['id','nombre', 'porcion_ing_grs', 'precio_compra']]
+            plato_ing_data_df = plato_ing_data_df.rename(columns={'id':'ID_INGREDIENTE','nombre':'INGREDIENTE', 'precio_compra':'PRECIO €', 'porcion_ing_grs':'PORCION (grs)'})
+            plato_ing_data_df['COSTE'] = (plato_ing_data_df['PORCION (grs)'] / 1000) * plato_ing_data_df['PRECIO €']
+            plato_ing_data_df['ID_PLATO'] = meals_id
+
+
             meals_id = meals_id
             meals_zone = expander_data['zona'].values[0]
             updated_zone = st.text_input('ZONA', value=meals_zone)
             updated_num_portions = st.number_input('Nº PORCIONES', value=float(expander_data['numero_porciones'].values[0]),
                                                 format='%f')
-            st.subheader('Ingredientes del Plato')
-            cross_query = queries.cross_platos_ingredientes
-            plato_ing_data = pd.read_sql(cross_query, cursor, params=(meals_id,))
-            plato_ing_data_df = plato_ing_data[['nombre', 'precio_compra', 'porcion_ing_grs']]
-            plato_ing_data_df = plato_ing_data_df.rename(columns={'nombre':'INGREDIENTE', 'precio_compra':'PRECIO €', 'porcion_ing_grs':'PORCION (grs)'})
-            updated_ingredients = st.data_editor(plato_ing_data_df, 
-                                                 hide_index=True, 
-                                                 use_container_width=True,
-                                                 disabled=('INGREDIENTE','PRECIO €'),
-                                                 num_rows='dynamic'
-                                                 )
+            
+            def calculate_data_from_ingredient_name_list(ingredient_df, id_plato):
+                ingredient_list = ingredient_df['INGREDIENTE'].values.tolist()
+                ingredient_names = ', '.join([f"'{name}'" for name in ingredient_list])
+                query = f'SELECT id, precio_compra FROM inventario WHERE nombre IN ({ingredient_names});'
+                results = pd.read_sql(query, cursor)
+                results = results.rename(columns={'id':'ID_INGREDIENTE','precio_compra':'PRECIO €'})
+                results['COSTE'] = (ingredient_df['PORCION (grs)'] / 1000) * results['PRECIO €']
+                results['ID_PLATO'] = id_plato
+                results['PORCION (grs)'] = ingredient_df['PORCION (grs)']
+                results['INGREDIENTE'] = ingredient_df['INGREDIENTE']
 
+                return results
+
+            st.subheader('Ingredientes del Plato')
+            ingredient_query = 'SELECT DISTINCT nombre FROM inventario'
+            ingredient_values = pd.read_sql(ingredient_query, cursor)
+            updated_ingredients = st.data_editor(plato_ing_data_df,
+                                                column_config={
+                                                    "INGREDIENTE": st.column_config.SelectboxColumn(
+                                                        "INGREDIENTE",
+                                                        help="Selecciona Ingrediente",
+                                                        width="large",
+                                                        options=ingredient_values.values.tolist(),
+                                                        required = True,     
+                                                    )
+                                                }, 
+                                                hide_index=True, 
+                                                use_container_width=True,
+                                                disabled=('PRECIO €', 'ID_INGREDIENTE', 'COSTE', 'ID_PLATO'),
+                                                num_rows='dynamic'
+                                                )
+        
+            
             st.subheader('Alérgenos')
             # ex_alrg = st.expander('Alérgenos')
             data_allergen = pd.read_sql(f'SELECT alergeno, presencia FROM alergenos WHERE id_plato = {meals_id}', cursor)
             data_allergen_df = pd.DataFrame(data_allergen)
+            if len(data_allergen_df) == 0:
+                data_allergen = self.get_expander_allergen()
+                data_allergen_df = pd.DataFrame({
+                                "Alérgeno": data_allergen,
+                                "Presencia": [False for _ in range(len(data_allergen))],
+                            }
+                                )
             data_allergen_df.rename(columns={'alergeno': 'Alérgeno', 'presencia': 'Presencia'}, inplace=True)
+            
             updated_data_allergen = st.data_editor(data_allergen_df, column_config={
                                                     "Presencia": st.column_config.CheckboxColumn(
                                                         "¿Hay Alérgeno?",
@@ -357,7 +395,13 @@ class StreamlitMealsProcess:
                 update_button = st.form_submit_button(label='Actualizar Plato', type='primary')
                 if update_button:
                     meals_id = meals_id
+                    ingredient_df = updated_ingredients
+                    df = calculate_data_from_ingredient_name_list(ingredient_df, id_plato=meals_id)
+                    updated_ingredients_new = df
                     updated_status_bin = BitArray(bin=updated_status_val).bin
+                    updated_ingredients_data = updated_ingredients_new
+                    updated_recipe_cost = updated_ingredients_data['COSTE'].sum()
+                    updated_meals_ingredients_tuple = [tuple(row) for row in updated_ingredients_data[['ID_INGREDIENTE', 'PORCION (grs)', 'ID_PLATO']].values]
                     if updated_img is not None:
                         updated_img_contents = updated_img.read()
                         st.image(updated_img_contents, caption=f'{updated_name}')
@@ -387,6 +431,29 @@ class StreamlitMealsProcess:
                     WHERE id = '{meals_id}'
                     ''')
 
+                    for inventory_id, portion, meal_id in updated_meals_ingredients_tuple:
+                        cursor.execute('''
+                        SELECT COUNT(*) FROM plato_ingredientes
+                        WHERE id_plato = ? AND id_inventario = ?
+                    ''', (meal_id, inventory_id))
+                    
+                        count = cursor.fetchone()[0]
+                    
+                        if count == 0:
+                            # No record exists, so perform an INSERT
+                            cursor.execute('''
+                                INSERT INTO plato_ingredientes (id_plato, id_inventario, porcion_ing_grs)
+                                VALUES (?, ?, ?)
+                            ''', (meal_id, inventory_id, portion))
+                        else:
+                            cursor.execute('''
+                                UPDATE plato_ingredientes
+                                SET
+                                porcion_ing_grs = ?
+                                WHERE id_plato = ? AND id_inventario = ?
+                            ''', (portion, meal_id, inventory_id))
+
+
                     updated_all_allergen_list = updated_data_allergen[['Alérgeno', 'Presencia']].values.tolist()
                     updated_all_allergen_to_insert = [(presence, allergen, meals_id) for allergen, presence in updated_all_allergen_list]
                     update_allergen_query = ('''UPDATE alergenos
@@ -400,7 +467,8 @@ class StreamlitMealsProcess:
                         cursor.execute(update_allergen_query, (presence, allergen, meal_id))
                     cursor.commit()
 
-                    # display a success message
+
+                    # # display a success message
                     st.success('¡Plato Actualizado!', icon="✅")
                     time.sleep(2)
                     st.experimental_rerun()
