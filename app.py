@@ -63,7 +63,7 @@ cursor.execute(query=queries.insert_menu_engine_value)
 
 def main():    
     # Create a menu with submenus
-    menu = ['Home', 'Inventario', 'Platos', 'Análisis', 'Ventas', 'About']
+    menu = ['Platos', 'Análisis', 'Inventario','Ventas', 'About', 'Home']
     # submenu_products = ['Mostrar', 'Agregar', 'Eliminar']
     
     st.sidebar.title('MENU DE NAVEGACIÓN',)

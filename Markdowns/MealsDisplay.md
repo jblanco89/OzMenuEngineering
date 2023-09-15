@@ -1,10 +1,10 @@
 # Plato Details
 
 ## Basic Information
-- **ID:** {{ ID }}
-- **Nombre del Plato:** {{ Nombre del Plato }}
-- **Categoría:** {{ Categoría }}
-- **Zona:** {{ Zona }}
+- **ID:** {ID}
+- **Nombre del Plato:** {NAME}
+- **Categoría:** {CATEGORY}
+- **Zona:** {{zona}}
 - **Fecha de Creación:** {{ Fecha }}
 
 ## Specifications
