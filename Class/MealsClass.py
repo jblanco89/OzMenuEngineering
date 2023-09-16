@@ -327,7 +327,8 @@ class StreamlitMealsProcess:
             updated_date = st.date_input('FECHA (YYYY/MM/DD)', value=meals_date, format='YYYY/MM/DD')
             updated_portion = st.number_input('PORCION (grs)', value=float(meals_portion), format='%f')
             updated_sale_price = st.number_input('PRECIO VENTA (€)', value=meals_sale_price, format='%f')
-            updated_recipe_cost = st.number_input('COSTE RECETA (€)', value=float(meals_recipe_cost), format='%.2f')
+            # updated_recipe_cost = st.number_input('COSTE RECETA (€)', value=float(meals_recipe_cost), format='%.2f')
+            st.markdown(f'**COSTE RECETA (€): {meals_recipe_cost}**')
             updated_tax = 0.10
             st.markdown(f'**IMPUESTO: {updated_tax*100}%**')
             # updated_tax = st.number_input('IMPUESTO', value=meals_tax, format='%.2f')
@@ -342,7 +343,7 @@ class StreamlitMealsProcess:
             plato_ing_data_df = plato_ing_data[['id','nombre', 'porcion_ing_grs', 'precio_compra']]
             plato_ing_data_df = plato_ing_data_df.rename(columns={'id':'ID_INGREDIENTE','nombre':'INGREDIENTE', 'precio_compra':'PRECIO €', 'porcion_ing_grs':'PORCION (grs)'})
             plato_ing_data_df['COSTE'] = (plato_ing_data_df['PORCION (grs)'] / 1000) * plato_ing_data_df['PRECIO €']
-            plato_ing_data_df['ID_PLATO'] = meals_id
+            # plato_ing_data_df['ID_PLATO'] = meals_id
 
 
             meals_id = meals_id
@@ -360,7 +361,7 @@ class StreamlitMealsProcess:
                 ingredient_df['PORCION (grs)'] = pd.to_numeric(ingredient_df['PORCION (grs)'], errors='coerce')
                 results['COSTE'] = (ingredient_df['PORCION (grs)'] / 1000) * results['PRECIO €']
                 results['ID_PLATO'] = id_plato
-                results['PORCION (grs)'] = ingredient_df['PORCION (grs)']
+                results['PORCION (grs)'] = ingredient_df['PORCION (grs)'].values
                 results['INGREDIENTE'] = ingredient_df['INGREDIENTE']
 
                 return results

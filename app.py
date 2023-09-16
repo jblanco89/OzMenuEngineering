@@ -79,12 +79,7 @@ def main():
         with table_in:
             inventori.search_stock_engine()
         with adding_in:
-            st.subheader('Add a new product')
-            product_name = st.text_input('Product Name')
-            product_description = st.text_area('Product Description')
-            product_price = st.number_input('Product Price', step=0.01, format='%0.2f')
-            if st.button('Submit'):
-                st.success('Product added successfully!')
+            inventori.add_product_form()
             
 
     elif selection_menu == 'Platos':
@@ -104,7 +99,7 @@ def main():
                                                                       'FIJACIÓN DE PRECIOS', 
                                                                       'EXPLICACIÓN'])
         with engine_tab1:
-            st.write('construcción')
+            menu_engine.engine_dashboard()
         with engine_tab2:
             menu_engine.engine_table()
         with engine_tab3:
