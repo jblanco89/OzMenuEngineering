@@ -37,10 +37,43 @@ class StreamlitStockProcess:
                                                 'PESO BRUTO', 'PRECIO COMPRA']].fillna(1.0)
         return stock_data
     
+    def add_product_categories(self):
+        ing_categories = pd.read_sql('SELECT * FROM categorias_de_ingredientes', cursor)
+        names_categories = ing_categories['nombre_categoria'].values.tolist()
+        id_category = ing_categories['id_categoria'].iloc[-1] + 1
+        exp_cat = st.expander('AGREGAR')
+        with exp_cat:
+            with st.form('AÑADIR CATEGORÍA', clear_on_submit=True):
+                st.markdown(f'ID CATEGORÍA: {id_category}')
+                add_name_category = st.text_input('NOMBRE')
+                btn_cat = st.form_submit_button('AGREGAR')
+                if btn_cat:
+                    if (add_name_category.lower() not in map(str.lower, names_categories)):
+                        cursor.execute(f'''
+                        INSERT INTO categorias_de_ingredientes (
+                                id_categoria,
+                                nombre_categoria
+                        )
+                                VALUES
+                                (
+                                '{id_category}',
+                                '{add_name_category}'
+                                );
+                    ''')
+                        cursor.commit()
+                        time.sleep(2)
+                        st.experimental_rerun()
+                    else:
+                        st.error('Esta categoría ya existe')
+                        time.sleep(2)
+                        st.experimental_rerun()
+
+        st.dataframe(ing_categories, hide_index=True, use_container_width=True)
+    
     def add_product_form(self):
         st.subheader('Formulario para agregar ingredientes')
         stock_data = self.stock_data()
-        family_options = stock_data['FAMILIA'].str.upper().unique().tolist()
+        family_options = pd.read_sql('SELECT nombre_categoria FROM categorias_de_ingredientes', cursor)
         add_stock_id = stock_data['ID'].iloc[-1] + 1
         format_options = stock_data['UNIDAD COMPRA'].str.upper().str.rstrip('.').unique().tolist()
         with st.form(key='add_stock_form', clear_on_submit=True):

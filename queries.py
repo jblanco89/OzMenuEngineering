@@ -10,8 +10,10 @@ create_inventory_table = '''
             unidad_compra VARCHAR(50),
             formato FLOAT NOT NULL DEFAULT 1.0,
             peso_bruto FLOAT NOT NULL DEFAULT 1.0,
+            envase FLOAT NOT NULL DEFAULT 1.0,
             merma FLOAT NOT NULL DEFAULT 1.0,
-            peso_neto FLOAT NOT NULL DEFAULT 1.0, 
+            peso_neto FLOAT NOT NULL DEFAULT 1.0,
+            peso_antes_escurrido FLOAT NOT NULL DEFAULT 1.0, 
             factor_merma FLOAT DEFAULT 1.0,
             existencias FLOAT DEFAULT 1.0
         );
@@ -91,6 +93,20 @@ create_sales_table = '''
 
 '''
 
+create_meal_category_table='''
+    CREATE TABLE IF NOT EXISTS categorias_de_plato (
+    id_categoria INTEGER,
+    nombre_categoria VARCHAR(30),
+    );
+'''
+
+create_ingredient_category_table ='''
+    CREATE TABLE IF NOT EXISTS categorias_de_ingredientes (
+    id_categoria INTEGER,
+    nombre_categoria VARCHAR (30),
+    );
+'''
+
 with open('img/Imagen1.jpg', 'rb') as f:
     image_data = f.read()
 
@@ -133,7 +149,7 @@ insert_ingredient_meal_data = '''
 '''
 
 insert_inventory_data = '''
-    INSERT OR IGNORE INTO inventario 
+    INSERT INTO inventario 
     SELECT 
     ID, 
     FAMILIA, 
@@ -143,13 +159,15 @@ insert_inventory_data = '''
     UDCompra, 
     UD, 
     FORMATO, 
-    PESOBruto, 
+    PESOBruto,
+    ENVASE,
+    PesoAntesEscurrido, 
     MERMA,
-    (PESOBruto - MERMA) AS PESONeto, 
+    PESONeto, 
     FACTORMerma,
     EXISTENCIAS 
     FROM read_csv('external_csv/inventario_dev.csv', 
-    delim=';', header=True, ignore_errors=1,
+    delim=';', header=True,
     columns={
         'ID': 'INTEGER', 
         'FAMILIA': 'VARCHAR', 
@@ -160,9 +178,11 @@ insert_inventory_data = '''
         'UD': 'VARCHAR',
         'FORMATO': 'FLOAT',
         'PESOBruto': 'FLOAT NOT NULL DEFAULT 1.0',
+        'ENVASE':'FLOAT NOT NULL DEFAULT 1.0',
+        'PesoAntesEscurrido': 'FLOAT NOT NULL DEFAULT 1.0',
+        'PESONeto': 'FLOAT NOT NULL DEFAULT 1.0',
         'MERMA': 'FLOAT NOT NULL DEFAULT 1.0',
         'FACTORMerma': 'FLOAT NOT NULL DEFAULT 1.0',
-        'PESONeto': 'FLOAT NOT NULL DEFAULT 1.0',
         'EXISTENCIAS': 'FLOAT NOT NULL DEFAULT 1.0'
         }
         )

@@ -59,6 +59,8 @@ cursor.execute(query=queries.insert_inventory_data)
 cursor.execute(query=queries.correct_inventario_data)
 # cursor.execute(query=queries.insert_ingredient_meal_data)
 cursor.execute(query=queries.insert_menu_engine_value)
+cursor.execute(query=queries.create_meal_category_table)
+cursor.execute(query=queries.create_ingredient_category_table)
 
 
 def main():    
@@ -75,21 +77,25 @@ def main():
         home_page.show_home()
         
     elif selection_menu == 'Inventario':
-        table_in, adding_in = st.tabs(['TABLA', 'AGREGAR'])
+        table_in, adding_in, categories = st.tabs(['TABLA', 'AGREGAR', 'CATEGORIAS'])
         with table_in:
             inventori.search_stock_engine()
         with adding_in:
             inventori.add_product_form()
+        with categories:
+            inventori.add_product_categories()
             
 
     elif selection_menu == 'Platos':
-        cards, table, adding = st.tabs(['CARDS', 'TABLA', 'AGREGAR'])
+        cards, table, adding, categories = st.tabs(['CARDS', 'TABLA', 'AGREGAR', 'CATEGORIAS'])
         with table:
             meals.search_meal_engine_table()
         with cards:
             meals.search_meal_engine_cards()
         with adding:
             meals.add_meals_form()
+        with categories:
+            meals.add_meals_categories()
 
     elif selection_menu == 'Análisis':
         st.subheader("Ingeniería de Menú")

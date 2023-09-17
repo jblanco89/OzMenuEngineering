@@ -99,10 +99,45 @@ class StreamlitMealsProcess:
         with file_upload:
             st.file_uploader('Subir lista de platos', type=["xlsx", "xls"])
 
+    def add_meals_categories(self):
+        meal_categories = pd.read_sql('SELECT * FROM categorias_de_plato', cursor)
+        names_categories = meal_categories['nombre_categoria'].values.tolist()
+        id_category = meal_categories['id_categoria'].iloc[-1] + 1
+        exp_cat = st.expander('AGREGAR')
+        with exp_cat:
+            with st.form('AÑADIR CATEGORÍA', clear_on_submit=True):
+                st.markdown(f'ID CATEGORÍA: {id_category}')
+                add_name_category = st.text_input('NOMBRE')
+                btn_cat = st.form_submit_button('AGREGAR')
+                if btn_cat:
+                    if (add_name_category.lower() not in map(str.lower, names_categories)):
+                        cursor.execute(f'''
+                        INSERT INTO categorias_de_plato (
+                                id_categoria,
+                                nombre_categoria
+                        )
+                                VALUES
+                                (
+                                '{id_category}',
+                                '{add_name_category}'
+                                );
+                    ''')
+                        cursor.commit()
+                        time.sleep(2)
+                        st.experimental_rerun()
+                    else:
+                        st.error('Esta categoría ya existe')
+                        time.sleep(2)
+                        st.experimental_rerun()
+
+        st.dataframe(meal_categories, hide_index=True, use_container_width=True)
+                
+
     def add_meals_form(self):
         checkbox_states = {}
         st.subheader('Formulario para añadir plato')
         meals_data_frame = self.meals_data()
+        meals_categories_options = pd.read_sql('SELECT nombre_categoria FROM categorias_de_plato', cursor)
         id_value = meals_data_frame['ID'].iloc[-1] + 1
         with st.form(key='add_meals_form', clear_on_submit=False):
             st.subheader('Nuevo Plato')
@@ -110,7 +145,8 @@ class StreamlitMealsProcess:
             add_id = id_value
             # add_id = st.number_input('ID', min_value=0, value=id_value,format='%d')
             add_name = st.text_input('NOMBRE', value="")
-            # add_category = st.text_input('CATEGORÍA', value="")
+            add_category = st.selectbox('CATEGORÍA', options=meals_categories_options)
+            # add_category = st.selectbox('CATEGORÍA',('CENA','BREAKFAST','LUNCH', 'VINOS'))
             add_category = st.selectbox('CATEGORÍA',('CENA','BREAKFAST','LUNCH', 'VINOS'))
             add_date = st.date_input('FECHA (YYYY/MM/DD)', value=datetime.date.today())
             add_portion = st.number_input('PORCION (grs)', format='%.2f', value=0.0)

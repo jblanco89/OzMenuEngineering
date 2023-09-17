@@ -21,6 +21,7 @@ class IngredientClass:
             SELECT
             id,
             nombre,
+            familia,
             unidad_real,
             precio_compra,
             unidad_compra,
@@ -116,6 +117,7 @@ class IngredientClass:
     def add_ingredient_form(self):
         unit_options = ('gramos', 'mililitros', 'Litros', 'Kilogramos', 'Onzas')
         ingredients_data_frame = self.ingredients_data()
+        families = pd.read_sql('SELECT * FROM categorias_de_ingredientes', cursor)
         st.subheader('Agregar nuevo ingrediente')
         with st.form(key='add_ingredient_form', clear_on_submit=True):
             st.write('Nuevo Ingrediente')
@@ -123,6 +125,7 @@ class IngredientClass:
             # add_id = st.number_input('ID', min_value=0 ,value=, format='%d')
             add_name = st.text_input('NOMBRE')
             add_unit = st.selectbox('UNIDAD', unit_options, index=0)
+            add_family = st.selectbox('FAMILIA', options=families)
             add_purchase_price = st.number_input('PRECIO DE COMPRA (€)', format='%.2f')
             add_purchase_unit = st.selectbox('UNIDAD DE COMPRA', unit_options, index=0)
             add_merma = st.number_input('FACTOR MERMA', format='%.2f')
@@ -135,6 +138,7 @@ class IngredientClass:
                 (id,
                 nombre,
                 unidad_real,
+                familia,
                 precio_compra,
                 unidad_compra,
                 factor_merma
@@ -142,6 +146,7 @@ class IngredientClass:
                 '{add_id}', 
                 '{add_name}', 
                 '{add_unit}',
+                '{add_family}',
                 '{add_purchase_price}',
                 '{add_purchase_unit}',
                 '{add_merma}'
