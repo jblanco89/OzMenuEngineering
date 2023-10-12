@@ -48,19 +48,26 @@ st.markdown(css_styles,
 
 
 # DATE data type in duckDB --> ISO 8601 format (YYYY-MM-DD).
+
 cursor.execute(query=queries.create_inventory_table)
 cursor.execute(query=queries.create_meals_table)
 cursor.execute(query=queries.create_allergen_table)
+cursor.execute(query=queries.create_allergen_meal_table)
 cursor.execute(query=queries.create_meal_ingredient_table)
 cursor.execute(query=queries.create_menu_engine_table)
 cursor.execute(query=queries.create_sales_table)
-# cursor.execute(query=queries.insert_meals_data)
+cursor.execute(query=queries.insert_meals_data)
 cursor.execute(query=queries.insert_inventory_data)
 cursor.execute(query=queries.correct_inventario_data)
-# cursor.execute(query=queries.insert_ingredient_meal_data)
+cursor.execute(query=queries.insert_ingredient_meal_data)
 cursor.execute(query=queries.insert_menu_engine_value)
+
 cursor.execute(query=queries.create_meal_category_table)
 cursor.execute(query=queries.create_ingredient_category_table)
+cursor.execute(query=queries.insert_meal_category_data)
+cursor.execute(query=queries.insert_ingredient_category_data)
+cursor.execute(query=queries.insert_allergen_data)
+cursor.execute(query=queries.insert_meal_allergen_data)
 
 
 def main():    

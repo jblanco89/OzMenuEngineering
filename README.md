@@ -1,4 +1,4 @@
 ## Esquema Relacional de la App
 
 
- ![architecture](./sql/E-R%20Diagram_v2.png)
+ ![architecture](./sql/E-R_Diagram_v3.png)

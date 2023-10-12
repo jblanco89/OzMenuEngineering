@@ -46,12 +46,23 @@ create_meals_table = '''
     '''
 
 create_allergen_table = ''' CREATE TABLE IF NOT EXISTS alergenos (
-        id_plato INTEGER,
-        alergeno TEXT PRIMARY KEY,
-        presencia BOOLEAN,
-        FOREIGN KEY (id_plato) REFERENCES platos (id) ON DELETE CASCADE 
+        id_alergeno INTEGER PRIMARY KEY,
+        nombre_alergeno TEXT NOT NULL
     );
     '''
+
+
+create_allergen_meal_table = '''
+--Create junction table for many-to-many relationship
+    CREATE TABLE IF NOT EXISTS plato_alergenos (
+        id_plato INTEGER,
+        id_alergeno INTEGER,
+        presencia BOOLEAN,
+        FOREIGN KEY (id_plato) REFERENCES platos(id),
+        FOREIGN KEY (id_alergeno) REFERENCES alergenos(id_alergeno),
+        PRIMARY KEY (id_plato, id_alergeno)
+);
+'''
 
 create_meal_ingredient_table = '''
     CREATE TABLE IF NOT EXISTS plato_ingredientes (
@@ -95,14 +106,14 @@ create_sales_table = '''
 
 create_meal_category_table='''
     CREATE TABLE IF NOT EXISTS categorias_de_plato (
-    id_categoria INTEGER,
+    id_categoria_plato INTEGER,
     nombre_categoria VARCHAR(30),
     );
 '''
 
 create_ingredient_category_table ='''
     CREATE TABLE IF NOT EXISTS categorias_de_ingredientes (
-    id_categoria INTEGER,
+    id_categoria_ing INTEGER,
     nombre_categoria VARCHAR (30),
     );
 '''
@@ -126,7 +137,7 @@ insert_meals_data = f'''
     plato_activo
     )
     VALUES (
-        1,
+        0,
         'Principal',
         'Plato Inicial', 
         '2022-08-22',
@@ -143,9 +154,14 @@ insert_meals_data = f'''
 insert_ingredient_meal_data = '''
     INSERT OR IGNORE INTO plato_ingredientes 
     (id_plato, 
-    id_inventario
+    id_inventario,
+    porcion_ing_grs
     )
-    VALUES (1, 100004), (1, 100007), (1, 100048), (1, 100077);
+    VALUES 
+    (0, 100004, 1), 
+    (0, 100007, 1), 
+    (0, 100048, 1), 
+    (0, 100077, 1);
 '''
 
 insert_inventory_data = '''
@@ -198,9 +214,9 @@ insert_sales_data = '''
     unidades_vendidas)
     VALUES (
     '2022/03/01',
-    1,
-    'CEVICHE',
-    0.0
+    0,
+    'Plato Inicial',
+    1.0
     );
 
 '''
@@ -218,7 +234,7 @@ insert_menu_engine_value = '''
     popularidad,
     clasificacion)
     VALUES
-    (1,
+    (0,
     0.5,
     0.5,
     0.0,
@@ -270,4 +286,62 @@ correct_inventario_data = '''
     factor_merma = 0 OR factor_merma IS NULL OR 
     existencias = 0 OR existencias IS NULL;
 
+'''
+
+insert_meal_category_data='''
+    INSERT INTO categorias_de_plato 
+    (id_categoria_plato,
+    nombre_categoria)
+    VALUES(
+    1,
+    'ENTRANTES FRÍOS');
+'''
+
+insert_ingredient_category_data='''
+    INSERT INTO categorias_de_ingredientes 
+    (id_categoria_ing,
+    nombre_categoria)
+    VALUES(
+    1,
+    'VINOS Y ESPUMOSOS');
+'''
+
+insert_allergen_data='''
+    INSERT OR IGNORE INTO alergenos (id_alergeno, nombre_alergeno) VALUES
+    (1, 'Gluten 🚫'),
+    (2, 'Crustáceos 🦞'),
+    (3, 'Huevo 🥚'),
+    (4, 'Pescado 🐟'),
+    (5, 'Cacahuetes 🥜'),
+    (6, 'Lacteos 🥛'),
+    (7, 'Apio 🥬'),
+    (8, 'Mostaza 🌿'),
+    (9, 'Sulfitos 🧪'),
+    (10, 'Sésamo 🍞'),
+    (11, 'Moluscos 🐚'),
+    (12, 'Soja 🥟'),
+    (13, 'Frutos secos 🌰'),
+    (14, 'Altramuz 🌱');
+'''
+
+insert_meal_allergen_data='''
+    INSERT OR IGNORE INTO plato_alergenos 
+    (id_plato, 
+    id_alergeno, 
+    presencia) 
+    VALUES 
+    (0, 1, 1), 
+    (0, 2, 0), 
+    (0, 3, 0), 
+    (0, 4, 0), 
+    (0, 5, 0),
+    (0, 6, 0), 
+    (0, 7, 0), 
+    (0, 8, 0), 
+    (0, 9, 0), 
+    (0, 10, 0),
+    (0, 11, 0), 
+    (0, 12, 0), 
+    (0, 13, 0), 
+    (0, 14, 0);
 '''

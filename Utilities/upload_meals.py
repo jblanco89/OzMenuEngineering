@@ -1,4 +1,5 @@
 import pandas as pd
+import duckdb as dk
 
 sales_raw = pd.read_excel('./Uploads/VENTASARTICULOSFECHA.xls', sheet_name='Hoja1')
 
@@ -6,15 +7,25 @@ sales_df = sales_raw[['Codigo', 'Nombre']]
 
 meals_unique = sales_df.drop_duplicates()
 meals_unique = meals_unique.sort_values('Codigo')
+meals_unique['Codigo'] = meals_unique['Codigo'].astype(int)
 
-print(meals_unique)
+
+
 
 meals_unique.to_csv('./Uploads/unique_meal_list.csv', sep=',', index=False, header=True)
 
-# cursor.executemany(f'''
-#     INSERT INTO platos
-#         (id,
-#         nombre_plato
-#         )VALUES({meals_unique['Codigo']}, {meals_unique['Nombre']});
-# ''')
+conn = dk.connect(database='./DB/engineMenu_v43.db')
 
+
+insert_query = '''
+    INSERT INTO platos (id, nombre_plato)
+    VALUES (?, ?)
+'''
+
+# Prepare the data as a list of tuples
+data_to_insert = [(int(row['Codigo']), str(row['Nombre'])) for _, row in meals_unique.iterrows()]
+
+print(data_to_insert)
+
+# Execute the query with the data
+conn.executemany(insert_query, data_to_insert)
