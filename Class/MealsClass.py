@@ -380,7 +380,7 @@ class StreamlitMealsProcess:
             meals_date = datetime.datetime.strptime(meals_date, '%Y-%m-%dT%H:%M:%S.%f') if meals_date else datetime.date.today()
             updated_date = st.date_input('FECHA (YYYY/MM/DD)', value=meals_date, format='YYYY/MM/DD')
             updated_portion = st.number_input('PORCION (grs o ml)', value=float(meals_portion), format='%f')
-            updated_sale_price = st.number_input('PRECIO VENTA (€)', value=meals_sale_price, format='%f')
+            updated_sale_price = st.number_input('PRECIO VENTA (€)', value=float(meals_sale_price), format='%.2f')
             # updated_recipe_cost = st.number_input('COSTE RECETA (€)', value=float(meals_recipe_cost), format='%.2f')
             st.markdown(f'**COSTE RECETA (€): {meals_recipe_cost}**')
             updated_tax = 0.10
@@ -395,7 +395,7 @@ class StreamlitMealsProcess:
             plato_ing_data = pd.read_sql(cross_query, cursor, params=(meals_id,))
             plato_ing_data_df = plato_ing_data[['id','nombre', 'porcion_ing_grs', 'precio_compra']]
             plato_ing_data_df = plato_ing_data_df.rename(columns={'id':'ID_INGREDIENTE','nombre':'INGREDIENTE', 'precio_compra':'PRECIO €', 'porcion_ing_grs':'PORCION (grs o ml)'})
-            plato_ing_data_df['COSTE'] = (plato_ing_data_df['PORCION (grs o ml)'] / 1000) * plato_ing_data_df['PRECIO €']
+            # plato_ing_data_df['COSTE'] = (plato_ing_data_df['PORCION (grs o ml)'] / 1000) * plato_ing_data_df['PRECIO €']
             # plato_ing_data_df['ID_PLATO'] = meals_id
 
 
@@ -408,21 +408,25 @@ class StreamlitMealsProcess:
             def calculate_data_from_ingredient_name_list(ingredient_df, id_plato):
                 ingredient_list = ingredient_df['INGREDIENTE'].values.tolist()
                 ingredient_names = ', '.join([f"'{name}'" for name in ingredient_list])
-                query = f'SELECT id, precio_compra FROM inventario WHERE nombre IN ({ingredient_names});'
+                # ingredient_names = ', '.join([f'"{name.replace("'", "''")}"' for name in ingredient_list])
+                query = f'SELECT DISTINCT id, nombre, precio_compra FROM inventario WHERE nombre IN ({ingredient_names});'
                 results = pd.read_sql(query, cursor)
-                results = results.rename(columns={'id':'ID_INGREDIENTE','precio_compra':'PRECIO €'})
-                ingredient_df['PORCION (grs o ml)'] = pd.to_numeric(ingredient_df['PORCION (grs o ml)'], errors='coerce')
-                results['COSTE'] = (ingredient_df['PORCION (grs o ml)'] / 1000) * results['PRECIO €']
-                results['ID_PLATO'] = id_plato
-                results['PORCION (grs o ml)'] = ingredient_df['PORCION (grs o ml)'].values
-                results['INGREDIENTE'] = ingredient_df['INGREDIENTE']
+                results = results.rename(columns={'id':'ID_INGREDIENTE', 'precio_compra':'PRECIO €', 'nombre':'INGREDIENTE'})
+                # ingredient_df['PORCION (grs o ml)'] = pd.to_numeric(ingredient_df['PORCION (grs o ml)'], errors='coerce')
+                results['PORCION (grs o ml)'] = ingredient_df['PORCION (grs o ml)']
+                results['COSTE'] = (ingredient_df['PORCION (grs o ml)'] / 1000) * ingredient_df['PRECIO €']
+                # results_concat = pd.merge(results, ingredient_df, on='ID_INGREDIENTE')
+                results_concat = results.merge(ingredient_df, how='left')
+                # results['INGREDIENTE'] = ingredient_df['INGREDIENTE']
 
-                return results
+                return results_concat
+            
+            df = calculate_data_from_ingredient_name_list(plato_ing_data_df, id_plato=meals_id)
 
             st.subheader('Ingredientes del Plato')
             ingredient_query = 'SELECT DISTINCT nombre FROM inventario'
             ingredient_values = pd.read_sql(ingredient_query, cursor)
-            updated_ingredients = st.data_editor(plato_ing_data_df,
+            updated_ingredients = st.data_editor(df,
                                                 column_config={
                                                     "INGREDIENTE": st.column_config.SelectboxColumn(
                                                         "INGREDIENTE",
@@ -437,7 +441,7 @@ class StreamlitMealsProcess:
                                                 disabled=('PRECIO €', 'ID_INGREDIENTE', 'COSTE', 'ID_PLATO'),
                                                 num_rows='dynamic'
                                                 )
-        
+            
             updated_ingredients = updated_ingredients
             st.subheader('Alérgenos')
             ex_alrg = st.expander('Alérgenos')
@@ -489,7 +493,10 @@ class StreamlitMealsProcess:
             update_button = st.form_submit_button(label='Actualizar Plato', type='primary')
             if update_button:
                 meals_id = meals_id
+                # st.write(updated_ingredients)
                 updated_ingredients_new = calculate_data_from_ingredient_name_list(updated_ingredients, id_plato=meals_id)
+                updated_ingredients_new['ID_PLATO'] = meals_id
+                # st.write(updated_ingredients_new)
                 updated_status_bin = BitArray(bin=updated_status_val).bin
                 updated_recipe_cost = updated_ingredients_new['COSTE'].sum()
                 updated_meals_ingredients_tuple = [tuple(row) for row in updated_ingredients_new[['ID_INGREDIENTE', 'PORCION (grs o ml)', 'ID_PLATO']].values]
@@ -533,7 +540,6 @@ class StreamlitMealsProcess:
                     existing_row = cursor.fetchone()
 
                     if existing_row:
-                        # If the row exists, perform an UPDATE
                         cursor.execute('''
                             UPDATE plato_ingredientes
                             SET porcion_ing_grs = ?
@@ -542,9 +548,9 @@ class StreamlitMealsProcess:
                     else:
                         # If the row doesn't exist, perform an INSERT
                         cursor.execute('''
-                            INSERT INTO plato_ingredientes (id_inventario, porcion_ing_grs, id_plato)
+                            INSERT INTO plato_ingredientes (id_plato, id_inventario, porcion_ing_grs)
                             VALUES (?, ?, ?);
-                        ''', (id_inventario, porcion_ing_grs, id_plato))
+                        ''', (id_plato, id_inventario, porcion_ing_grs))
 
 
                 for id_alergeno, presencia, id_plato in updated_allergens_data:
@@ -573,11 +579,11 @@ class StreamlitMealsProcess:
 
                 
                 cursor.commit()
-                updated_ingredients_new = None
+                # updated_ingredients_new = None
 
                 # # display a success message
                 st.success('¡Plato Actualizado!', icon="✅")
-                time.sleep(3)
+                time.sleep(2)
                 st.experimental_rerun()
 
 

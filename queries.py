@@ -263,9 +263,7 @@ cross_platos_ingredientes = '''
     ON p.id = pli.id_plato 
     LEFT JOIN inventario as i 
     ON pli.id_inventario = i.id 
-    WHERE p.id = ? 
-    ORDER BY 
-    pli.porcion_ing_grs DESC;
+    WHERE p.id = ?;
 '''
 
 correct_inventario_data = '''
